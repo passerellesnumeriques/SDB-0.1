@@ -80,7 +80,7 @@ locale = {
 				l.word_pos = [];
 				var i = 0;
 				var s = str;
-				while ((i = s.indexOf('¤', i)) >= 0) {
+				while ((i = s.indexOf('~', i)) >= 0) {
 					l.word_pos.push(i);
 					s = s.substr(0, i)+s.substr(i+1);
 				}

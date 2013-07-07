@@ -52,9 +52,9 @@ function calendar_view_week(container, cal) {
 		t._time_titles = [];
 		t._delimiters = [];
 		t._content = document.createElement("DIV");
+		t.container.appendChild(t._content);
 		t._content.style.overflowY = 'scroll';
 		t._content.style.position = 'absolute';
-		t.container.appendChild(t._content);
 		for (var i = 0; i < t.nb_days; ++i) {
 			var div = document.createElement("DIV");
 			div.className = 'calendar_view_week_day_title';

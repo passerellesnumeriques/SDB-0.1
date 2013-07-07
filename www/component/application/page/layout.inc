@@ -91,7 +91,7 @@ if ($now <> "2013") echo "-".$now;
 ?> - Passerelles numériques
 -
 <a href="https://github.com/passerellesnumeriques/Students-DataBase/issues/new" target="_blank">Report a bug or request for new feature</a>
-<span id='application_loading' style='position:fixed;bottom:1px;right:2px;z-index:5;'><span><?php locale("application","Loading application")?></span> <iframe style='width:100px;height:10px;border:1px solid black;overflow:hidden;vertical-align:bottom' scrolling='no' src='/static/application/load.php?delay=2000'></iframe><span id='application_loading_text'></span></span>
+<span id='application_loading' style='position:fixed;bottom:1px;right:2px;z-index:5;visibility:hidden'><span><?php locale("application","Loading application")?></span> <iframe style='width:100px;height:10px;border:1px solid black;overflow:hidden;vertical-align:bottom' scrolling='no' src='/static/application/load.php?delay=10000'></iframe><span id='application_loading_text'></span></span>
 <span style='position:fixed;bottom:1px;right:3px;z-index:5;visibility:hidden;' id='inactivity_status'>
 	<?php locale("application","Inactivity")?>: <span id='inactivity_time'></span>
 </span>
@@ -109,7 +109,7 @@ function application_resize_frame() {
 	var right_close = document.getElementById('right_panel_close');
 	frame.style.height = right.style.height = (getWindowHeight()-header.scrollHeight-footer.scrollHeight-1)+"px";
 	if (right.data) {
-		frame.style.width = getWindowWidth()+"px";
+		frame.style.width = (getWindowWidth()-10)+"px";
 		right.style.position = "fixed";
 		right.style.right = "0px";
 		right.style.top = (header.scrollHeight)+"px";

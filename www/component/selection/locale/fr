@@ -5,8 +5,10 @@ applicant=candidat
 applicants=candidats
 applications=applications
 campaign=campagne
+create a new zone=créer une nouvelle zone
 ~create ~new ~campaign=~créer une ~nouvelle ~campagne
 dashboard=tableau de bord
+dashboard by zone=tableau de bord par zone
 don't have a schedule yet=n'ont pas encore d'horaire prévue
 don't have any staff assigned=n'ont aucun staff assigné
 ~information ~sessions=~sessions d'~information
@@ -16,6 +18,7 @@ interviews=entretiens
 selection=sélection
 ~social ~investigations=~investigations ~sociales
 ~written ~exams=~exams ~écrits
+zone=zone
 
 Please select a selection campaign=veuillez sélectionner une campagne 
 

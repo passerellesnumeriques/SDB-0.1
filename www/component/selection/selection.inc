@@ -24,7 +24,9 @@ class selection extends Component {
 	}
 
 	protected function is_service_allowed($path) {
-		if ($path == "create_campaign")
+		if ($path == "create_campaign" ||
+			$path == "zone/create"
+			)
 			return $this->app->user_management->has_right("edit_selection");
 		return false;
 	}
@@ -33,12 +35,16 @@ class selection extends Component {
 		require_once("common/SQLQuery.inc");
 		return SQLQuery::create()->select("SelectionCampaign")->execute();
 	}
-
+	public function get_zones() {
+		require_once("common/SQLQuery.inc");
+		return SQLQuery::create()->select("SelectionZone")->where("campaign",$this->campaign_id)->execute();
+	}
+	
 	// queries for applicants
 
 	public function &select_applicants() {
 		require_once("common/SQLQuery.inc");
-		return SQLQuery::create()->select("Applicant")->where("campaign",$this->campaign_id);
+		return SQLQuery::create()->select_sub_model("SelectionCampaign",$this->campaign_id)->select("Applicant");
 	}
 
 	// queries for information sessions

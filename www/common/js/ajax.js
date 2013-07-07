@@ -46,9 +46,12 @@ ajax = {
 	    }
 		ajax.call("POST", url, "application/x-www-form-urlencoded", data, error_handler, success_handler, foreground);
 	},
-	post_parse_result: function(url, data, handler, foreground) {
+	post_parse_result: function(url, data, handler, foreground, error_handler) {
 		var eh = function(error) {
-			error_dialog(error);
+			if (error_handler)
+				error_handler(error);
+			else
+				error_dialog(error);
 			handler(null);
 		};
 		ajax.post(url, data, eh, function(xhr) {
@@ -77,16 +80,25 @@ ajax = {
 		        try {
 		        	output = eval("("+xhr.responseText+")");
 		        } catch (e) {
-		        	error_dialog("Invalid json output:<br/>Error: "+e+"<br/>Output:<br/>"+xhr.responseText);
-			        handler(null);
+		        	eh("Invalid json output:<br/>Error: "+e+"<br/>Output:<br/>"+xhr.responseText);
+		        	return;
 		        }
 	        	if (output.errors) {
-	        		error_dialog("Errors:<br/>"+output.errors);
-	        		handler(null);
+	        		if (output.errors.length == 1)
+	        			eh(output.errors[0]);
+	        		else {
+	        			var s = "Errors:<ul style='margin:0px'>";
+	        			for (var i = 0; i < output.errors.length; ++i)
+	        				s += "<li>"+output.errors[i]+"</li>";
+	        			s += "</ul>";
+		        		eh(s);
+	        		}
 	        		return;
 	        	}
-	        	if (typeof output.result == 'undefined')
-	        		error_dialog("Error: No result from JSON service");
+	        	if (typeof output.result == 'undefined') {
+	        		eh("Error: No result from JSON service");
+	        		return;
+	        	}
 	        	handler(output.result);
 			} else {
 				// considered as free text...

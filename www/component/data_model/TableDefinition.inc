@@ -14,6 +14,8 @@ class Table {
 	private $fields_read_access = array();
 	private $fields_write_access = array();
 	private $displayable_data = array();
+	private $is_customized = false;
+	private $customization = array();
 	
 	private $_key_submodels = array();
 
@@ -82,7 +84,12 @@ class Table {
 		array_push($this->columns, $c);
 		return $this;
 	}
-
+	
+	public function &customizable() {
+		$this->is_customized = true;
+		return $this;
+	}
+	
 	/** Indicate one or several columns should be indexed for faster access.
 	 * As parameters, this method expects the list of columns to be indexed together.
 	 * @return \datamodel\Table
@@ -265,6 +272,13 @@ class Table {
 
 	public function &getModel() { return $this->model; }
 	public function getName() { return $this->name; }
+	public function getSQLName($sub_models) {
+		if ($this->model instanceof \SubDataModel) {
+			if (isset($sub_models[$this->model->getParentTable()]))
+				return $this->name."_".$sub_models[$this->model->getParentTable()];
+		}
+		return $this->name;
+	}
 
 	public function getPrimaryKey() {
 		foreach ($this->columns as $c)
@@ -279,26 +293,98 @@ class Table {
 	 * @throws \Exception in case the column is not accessible based on the rights of the user
 	 * @return Column|NULL the column or NULL if the column does not exist
 	 */
-	public function getColumn($name) {
-		foreach ($this->columns as $c)
+	public function getColumn($name, $sub_models = null) {
+		$columns = $this->_getColumns($sub_models);
+		foreach ($columns as $c)
 			if ($c->name == $name) {
 				if (!$this->canAccessField($c->name)) throw new \Exception("Access denied");
 				return $c;
 			}
 		return null;
 	}
-	public function getColumns() {
+	public function getColumns($sub_models = null) {
+		$columns = $this->_getColumns($sub_models);
 		$cols = array();
-		foreach ($this->columns as $c)
+		foreach ($columns as $c)
 			if ($this->canAccessField($c->name))
 				array_push($cols, $c);
+		return $cols;
+	}
+	
+	public function internalGetColumns($sub_models = null) { 
+		return $this->_getColumns($sub_models);
+	}
+	public function internalGetColumn($name, $sub_models = null) {
+		$columns = $this->_getColumns($sub_models);
+		foreach ($columns as $c)
+			if ($c->name == $name)
+				return $c;
+		return null;
+	}
+	
+	private function _getColumns($sub_models) {
+		if (!$this->is_customized) return $this->columns;
+		if ($this->model instanceof \SubDataModel) {
+			$name = $this->getSQLName($sub_models);
+			if (!isset($this->customization[$name])) {
+				$this->customization[$name] = $this->load_customization($name);
+			}
+			return array_merge($this->columns, $this->customization[$name]);
+		}
+		if (!isset($this->customization[$this->name])) {
+			$this->customization[$this->name] = $this->load_customization($this->name);
+		}
+		return array_merge($this->columns, $this->customization[$this->name]);
+	}
+	private function load_customization($table_name) {
+		$cols = array();
+		$res = \DataBase::execute("SHOW FULL COLUMNS FROM `".$table_name."`");
+		if ($res)
+			while (($r = \DataBase::next_row($res)) <> null) {
+				$col_name = $r["Field"];
+				// check if this column is a normal one
+				$found = false;
+				foreach ($this->columns as $c)
+					if ($c->name == $col_name) { $found = true; break; }
+				if ($found) continue;
+				$col_type = $r["Type"];
+				$col_size = null;
+				$i = strpos($col_type, "(");
+				if ($i !== FALSE) {
+					$j = strpos($col_type, ")");
+					$col_size = intval(substr($col_type, $i+1, $j-$i-1));
+					$col_type = substr($col_type, 0, $i);
+				}
+				$can_be_null = $r["Null"] == "YES";
+				$comment = $r["Comment"];
+				if (strlen($comment) > 0)
+					$comment = json_decode($comment);
+				else
+					$comment = array();
+				
+				$col = null;
+				if ($col_type == "int") {
+					if (isset($comment["foreign"]))
+						$col = new ForeignKey($this, $col_name, $comment["foreign"]);
+					else {
+						if ($col_size == 1)
+							$col = new ColumnBoolean($this, $col_name);
+						else
+							$col = new ColumnInteger($this, $col_name, $col_size);
+					}
+				} else if ($col_type == "varchar")
+					$col = new ColumnString($this, $col_name, $col_size);
+				// TODO continue
+				if ($col <> null)
+					array_push($cols, $col);
+			}
 		return $cols;
 	}
 
 	public function getLinks() {
 		return $this->links;
 	}
-
+	
 	/** @return \SQLQuery */
 	public function &select() {
 		require_once("common/SQLQuery.inc");
@@ -311,7 +397,7 @@ class Table {
 	}
 
 	/** Insert a new data in the table */
-	public function insert($fields) {
+	public function insert($fields, $sub_models = null) {
 		// check we are allowed
 		if (!$this->canAdd()) throw new \Exception("Access denied: add data to table ".$this->name);
 		// lock the table
@@ -321,11 +407,12 @@ class Table {
 		$lock = \DataBaseLock::lock($this->name, null, $locker, false);
 		if ($lock == null)
 			throw new \Exception("Access denied: the table ".$this->name." is locked by ".$locker);
+		$columns = $this->_getColumns($sub_models);
 		$id = null;
 		$error = null;
 		try {
 			// check unicity
-			foreach ($this->columns as $col) {
+			foreach ($columns as $col) {
 				if ($col->unique) {
 					if (!isset($fields[$col->name]))
 						throw new \Exception("Missing column ".$col->name." to insert data in table ".$this->name);
@@ -335,9 +422,23 @@ class Table {
 				}
 			}
 			// insert
-			$id = \SQLQuery::insert($this->name, $fields);
+			$sql = "INSERT INTO `".$this->getSQLName($sub_models)."` (";
+			$first = true;
+			foreach ($fields as $name=>$value) {
+				if ($first) $first = false; else $sql .= ",";
+				$sql .= "`".$name."`";
+			}
+			$sql .= ") VALUE (";
+			$first = true;
+			foreach ($fields as $name=>$value) {
+				if ($first) $first = false; else $sql .= ",";
+				if ($value === null) $sql .= "NULL"; else $sql .= "'".\DataBase::escape_string($value)."'";
+			}
+			$sql .= ")";
+			\DataBase::execute($sql);
+			$id = \DataBase::get_insert_id();
 			// sub models
-			foreach ($this->_key_submodels as $sm) {
+			foreach ($this->_key_submodels as &$sm) {
 				$sm->create_tables($id);
 			}
 		} catch (\Exception $e) {
@@ -351,6 +452,7 @@ class Table {
 
 	/** Remove the data having the given primary key, and all linked data */
 	public function remove_key($key) {
+		// TODO sub models + customization
 		// search for all tables that may contain a data to remove
 		$tables = array(&$this);
 		$this->search_tables_for_remove($tables);
@@ -374,7 +476,7 @@ class Table {
 		// remove data
 		$this->perform_remove($key);
 		// sub models
-		foreach ($this->_key_submodels as $sm) {
+		foreach ($this->_key_submodels as &$sm) {
 			$sm->remove_tables($key);
 		}
 		// unlock tables
@@ -383,6 +485,7 @@ class Table {
 	}
 	/** Remove data with given primary keys */
 	public function remove_keys($keys) {
+		// TODO sub models + customization
 		// search for all tables that may contain a data to remove
 		$tables = array(&$this);
 		$this->search_tables_for_remove($tables);
@@ -408,7 +511,7 @@ class Table {
 			$this->perform_remove($key);
 		// sub models
 		foreach ($keys as $key)
-			foreach ($this->_key_submodels as $sm) {
+			foreach ($this->_key_submodels as &$sm) {
 				$sm->remove_tables($key);
 			}
 		// unlock tables
@@ -417,6 +520,7 @@ class Table {
 	}
 	/** Remove entries corresponding to the given rows */
 	public function remove_rows($rows) {
+		// TODO sub models + customization
 		$keys = array();
 		$pk = $this->getPrimaryKey()->name;
 		foreach ($rows as $r) array_push($keys, $r[$pk]);
@@ -424,6 +528,7 @@ class Table {
 	}
 
 	private function search_tables_for_remove(&$tables) {
+		// TODO sub models + customization
 		foreach ($this->model->internalGetTables() as $t) {
 			if (in_array($t, $tables)) continue;
 			foreach ($t->columns as $col)
@@ -436,6 +541,7 @@ class Table {
 	}
 
 	private function perform_remove($key) {
+		// TODO sub models + customization
 		// remove data
 		\DataBase::$conn->execute("DELETE FROM `".$this->name."` WHERE `".$this->getPrimaryKey()->name."`=".$key);
 		// remove linked data
@@ -458,6 +564,7 @@ class Table {
 	}
 
 	public function update_by_key($key, $fields_values, $lock_id = null) {
+		// TODO sub models + customization
 		// check we are allowed
 		foreach ($fields_values as $field=>$value)
 			if (!$this->canModifyField($field)) throw new \Exception("Access Denied: modify ".$field." on table ".$this->name);
@@ -506,6 +613,36 @@ class Table {
 		if ($error <> null) throw new \Exception($error);
 	}
 
+	public function update($fields_values, $where) {
+		// TODO sub models + customization
+		$sql = "UPDATE `".$this->name."` SET ";
+		$first = true;
+		foreach ($fields_values as $field=>$value) {
+			if (!$this->canModifyField($field)) throw new Exception("Access denied for column '".$field."' on table '".$this->name."'");
+			if ($first) $first = false; else $sql .= ",";
+			$sql .= "`".$field."`=";
+			if ($value === null) $sql .= "NULL";
+			else $sql .= "'".DataBase::$conn->escape_string($value)."'";
+		}
+		if ($where <> null) {
+			$sql .= " WHERE ";
+			if (is_string($where)) $sql .= $where;
+			else {
+				$first = true;
+				foreach ($where as $field=>$value) {
+					if ($first) $first = false; else $sql .= " AND ";
+					$sql .= "`".$field."`";
+					if ($value === null) $sql .= " IS NULL";
+					else $sql .= "='".DataBase::$conn->escape_string($value)."'";
+				}
+			}
+		}
+		DataBase::$conn->execute($sql);
+		if (DataBase::$conn->get_last_error_number() == 0)
+			return DataBase::$conn->affected_rows();
+		return -1;
+	}
+	
 }
 
 class Link {
@@ -712,7 +849,11 @@ class ForeignKey extends ColumnInteger {
 
 	public function __construct(&$table, $name, $foreign_table) {
 		$this->foreign_table = $foreign_table;
-		$ft = $table->getModel()->internalGetTable($foreign_table);
+		try { $ft = $table->getModel()->internalGetTable($foreign_table); }
+		catch (\Exception $e) { $ft = null; }
+		if ($ft == null && $table->getModel() instanceof \SubDataModel)
+			try { $ft = $table->getModel()->getParentModel()->internalGetTable($foreign_table); }
+			catch (\Exception $e) { $ft = null; }
 		if ($ft == null) { 
 			\PNApplication::error("Invalid foreign key '".$name."' in table '".$table->getName()."': foreign table '".$foreign_table."' does not exist");
 			$size = 32;
@@ -721,7 +862,14 @@ class ForeignKey extends ColumnInteger {
 		parent::__construct($table, $name, $size, true, false);
 	}
 
-	public function get_sql_type() { return "INT(".$this->table->getModel()->internalGetTable($this->foreign_table)->getPrimaryKey()->size.")"; }
+	public function get_sql_type() { 
+		try { $ft = $this->table->getModel()->internalGetTable($this->foreign_table); }
+		catch (\Exception $e) { $ft = null; }
+		if ($ft == null && $this->table->getModel() instanceof \SubDataModel)
+			try { $ft = $this->table->getModel()->getParentModel()->internalGetTable($this->foreign_table); }
+			catch (\Exception $e) { $ft = null; }
+		return "INT(".$ft->getPrimaryKey()->size.")"; 
+	}
 }
 }
 ?>

@@ -125,6 +125,32 @@ html, body {
 .page_header_content .page_menu_item {
 	padding-left: 5px;
 }
+
+.page_header_left {
+	height: 100%;
+	width: 35px;
+	background: #d0d0d0; /* Old browsers */
+	background: -moz-linear-gradient(left,  #d0d0d0 66%, #a0a0a0 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(66%,#d0d0d0), color-stop(100%,#a0a0a0)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left,  #d0d0d0 66%,#a0a0a0 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left,  #d0d0d0 66%,#a0a0a0 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(left,  #d0d0d0 66%,#a0a0a0 100%); /* IE10+ */
+	background: linear-gradient(to right,  #d0d0d0 66%,#a0a0a0 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#d0d0d0', endColorstr='#a0a0a0',GradientType=1 ); /* IE6-9 */
+}
+.page_header_title_left {
+	width: 31px;
+	padding: 3px 2px 6px 2px;
+	margin-bottom: 10px;
+	font-size: 12pt;
+	font-weight: bold;
+	color: #4040A0;
+	border-bottom: 1px solid rgba(255,255,255,0.5);
+	border-bottom-right-radius: 10px;
+	background-color: rgba(255,255,255,0.2);
+}
+
+
 .page_content {
 	position: fixed;
 	top: 35px;

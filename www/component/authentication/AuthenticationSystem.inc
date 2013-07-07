@@ -6,7 +6,7 @@ abstract class AuthenticationSystem {
 	 * @param string $username
 	 * @param string $password
 	 */
-	public abstract function authenticate($username, $password);
+	public abstract function authenticate($username, $password, &$error);
 
 	/**
 	 * @param string $token from the authenticate method
@@ -16,7 +16,7 @@ abstract class AuthenticationSystem {
 	/**
 	 * @return array of (username,array(people_info_key=>people_info_value)), or NULL if this functionality is not available
 	 */
-	public function get_user_list() { return null; }
+	public function get_user_list($token) { return null; }
 
 	/**
 	 * @param string $token from the authenticate method

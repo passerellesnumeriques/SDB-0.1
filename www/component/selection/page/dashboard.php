@@ -19,42 +19,51 @@ $header->generate();
 ?>
 <table width=100%>
 <tr><td align=left valign=top>
-<div id='widget_general_status' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("General Status")?></div>
-	<div class='collapsable_section_content' id='general_status_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
-<div id='widget_information_sessions' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Information Sessions")?></div>
-	<div class='collapsable_section_content' id='information_sessions_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
-<div id='widget_applications' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Applications")?></div>
-	<div class='collapsable_section_content' id='applications_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
-<div id='widget_written_exams' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Written Exams")?></div>
-	<div class='collapsable_section_content' id='written_exams_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
-<div id='widget_interviews' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Interviews")?></div>
-	<div class='collapsable_section_content' id='interviews_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
-<div id='widget_social_investigations' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Social Investigations")?></div>
-	<div class='collapsable_section_content' id='social_investigations_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
-<div id='widget_result' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Result")?></div>
-	<div class='collapsable_section_content' id='result_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
+	<div id='widget_zones' class='selection_dashboard_widget'>
+		<div class='collapsable_section_header'><?php locale("Dashboard by zone")?></div>
+		<div class='collapsable_section_content' id='zones_content'><img src='/static/common/images/loading.gif'/></div>
+	</div>
 </td><td align=left valign=top>
-<div id='widget_calendar' class='selection_dashboard_widget'>
-	<div class='collapsable_section_header'><?php locale("Calendar")?></div>
-	<div class='collapsable_section_content' id='calendar_content'><img src='/static/common/images/loading.gif'/></div>
-</div>
+	<div id='widget_general_status' class='selection_dashboard_widget'>
+		<div class='collapsable_section_header'><?php locale("General Status")?></div>
+		<div class='collapsable_section_content' style='padding:2px'>
+			<div id='general_status_content'>
+				<img src='/static/common/images/loading.gif'/>
+			</div>
+			<div id='widget_information_sessions' class='selection_dashboard_widget'>
+				<div class='collapsable_section_header'><?php locale("Information Sessions")?></div>
+				<div class='collapsable_section_content' id='information_sessions_content'><img src='/static/common/images/loading.gif'/></div>
+			</div>
+			<div id='widget_applications' class='selection_dashboard_widget'>
+				<div class='collapsable_section_header'><?php locale("Applications")?></div>
+				<div class='collapsable_section_content' id='applications_content'><img src='/static/common/images/loading.gif'/></div>
+			</div>
+			<div id='widget_written_exams' class='selection_dashboard_widget'>
+				<div class='collapsable_section_header'><?php locale("Written Exams")?></div>
+				<div class='collapsable_section_content' id='written_exams_content'><img src='/static/common/images/loading.gif'/></div>
+			</div>
+			<div id='widget_interviews' class='selection_dashboard_widget'>
+				<div class='collapsable_section_header'><?php locale("Interviews")?></div>
+				<div class='collapsable_section_content' id='interviews_content'><img src='/static/common/images/loading.gif'/></div>
+			</div>
+			<div id='widget_social_investigations' class='selection_dashboard_widget'>
+				<div class='collapsable_section_header'><?php locale("Social Investigations")?></div>
+				<div class='collapsable_section_content' id='social_investigations_content'><img src='/static/common/images/loading.gif'/></div>
+			</div>
+			<div id='widget_result' class='selection_dashboard_widget'>
+				<div class='collapsable_section_header'><?php locale("Result")?></div>
+				<div class='collapsable_section_content' id='result_content'><img src='/static/common/images/loading.gif'/></div>
+			</div>
+		</div>
+	</div>
+	<div id='widget_calendar' class='selection_dashboard_widget'>
+		<div class='collapsable_section_header'><?php locale("Calendar")?></div>
+		<div class='collapsable_section_content' id='calendar_content'><img src='/static/common/images/loading.gif'/></div>
+	</div>
 </td></tr>
 </table>
 <script type='text/javascript'>
+new collapsable_section('widget_zones');
 new collapsable_section('widget_general_status');
 new collapsable_section('widget_information_sessions');
 new collapsable_section('widget_applications');
@@ -64,6 +73,7 @@ new collapsable_section('widget_social_investigations');
 new collapsable_section('widget_result');
 new collapsable_section('widget_calendar');
 
+new selection_widget('zones');
 new selection_widget('general_status');
 new selection_widget('information_sessions');
 new selection_widget('applications');

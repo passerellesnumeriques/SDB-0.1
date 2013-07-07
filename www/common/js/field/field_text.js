@@ -4,4 +4,5 @@ function field_text() {
 		return parent.appendChild(text);
 	}
 	this.isEditable = function() { return false; };
+	this.getValue = function(text) { return text.nodeValue; };
 }

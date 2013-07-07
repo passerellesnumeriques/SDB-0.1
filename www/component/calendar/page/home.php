@@ -1,13 +1,10 @@
 <?php
-$this->add_javascript("/static/common/js/Status.js");
-$this->add_javascript("/static/common/js/StatusUI_Top.js");
 $this->add_javascript("/static/common/js/splitter_vertical/splitter_vertical.js");
 $this->add_stylesheet("/static/common/js/splitter_vertical/splitter_vertical.css");
-$this->add_javascript("/static/common/js/vertical_layout/vertical_layout.js");
 $this->add_javascript("/static/calendar/calendar.js");
-$this->add_javascript("/static/calendar/calendar_view_week.js");
-$this->add_stylesheet("/static/calendar/calendar_view_week.css");
-$this->onload("new vertical_layout('calendar_page');new splitter_vertical('calendar_split',0.3);");
+$this->add_javascript("/static/calendar/calendar_view.js");
+$this->add_stylesheet("/static/calendar/calendar_view.css");
+//$this->onload("");
 
 require_once("common/SQLQuery.inc");
 $calendars = SQLQuery::create()->select("UserCalendar")->where("username",PNApplication::$instance->user_management->username)->join("UserCalendar","Calendar",array("calendar"=>"id"))->execute();
@@ -15,11 +12,8 @@ foreach ($calendars as &$cal)
 	$cal["color"] = "#A0F0A0";
 ?>
 <div id='calendar_page' style='width:100%;height:100%'>
-	<div id='calendar_header' layout='fixed'>
+	<div id='calendar_left' style='overflow:auto'>
 		<div class='button' onclick='import_calendar();'><img src='/static/common/images/import.png'/> <?php locale("Import Calendar")?></div>
-	</div>
-	<div id='calendar_split' layout='fill'>
-		<div id='calendar_left'>
 <?php
 foreach ($calendars as &$cal) {
 	echo "<div>";
@@ -28,48 +22,14 @@ foreach ($calendars as &$cal) {
 	echo "</div>";
 }
 ?>
-		</div>
-		<div id='calendar_content'>
-			Content
-		</div>
+	</div>
+	<div id='calendar_content'>
 	</div>
 </div>
 <script type='text/javascript'>
-var status_mgr = new StatusManager();
-new StatusUI_Top(status_mgr, 0);
-var loading_status = new StatusMessage(Status_TYPE_PROCESSING, "<?php locale("Loading calendars")?>");
-loading_status.counter = 0;
-
+new splitter_vertical('calendar_page',0.3);
 var cal = new Calendar();
-cal.onloading = function(calendars, calendar) {
-	loading_status.counter++;
-	if (loading_status.counter == 1)
-		status_mgr.add_status(loading_status);
-};
-cal.onloaded = function(calendars, calendar) {
-	loading_status.counter--;
-	if (loading_status.counter == 0)
-		status_mgr.remove_status(loading_status);
-};
-cal.onerror = function(calendars, calendar, error) {
-	loading_status.counter--;
-	if (loading_status.counter == 0)
-		status_mgr.remove_status(loading_status);
-	status_mgr.add_status(new StatusMessageError(null, calendar.name+": "+error, 5000));
-};
-cal.onaction = function(id, message) {
-	var s = new StatusMessage(Status_TYPE_PROCESSING, message);
-	s.calid = id;
-	status_mgr.add_status(s);
-};
-cal.onactiondone = function(id) {
-	for (var i = 0; i < status_mgr.status.length; ++i)
-		if (status_mgr.status[i].calid && status_mgr.status[i].calid == id) {
-			status_mgr.remove_status(status_mgr.status[i]);
-			return;
-		}
-};
-var view = new calendar_view_week('calendar_content',cal);
+var view = new calendar_view('calendar_content',cal);
 <?php
 foreach ($calendars as &$cal)
 	echo "cal.add_calendar(".json_encode($cal["name"]).",'/dynamic/calendar/service/get?id=".$cal["calendar"]."','".$cal["color"]."');";

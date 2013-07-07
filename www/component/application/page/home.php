@@ -12,3 +12,4 @@ TODO: home page
 <a href="/dynamic/geography/page/edit/adm?country=VN">Geography: edit vietnam</a><br/>
 <br/>
 <br/>
+<?php var_dump($_SERVER); ?>

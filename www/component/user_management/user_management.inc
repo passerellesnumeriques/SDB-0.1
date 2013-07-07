@@ -22,9 +22,10 @@ class user_management extends Component {
 	public function login($domain, $username, $password) {
 		if ($this->username <> null) $this->logout();
 		$auth = $this->app->authentication->get_authentication_system($domain);
-		if ($auth == null) return false;
-		$this->auth_token = $auth->authenticate($username, $password);
-		if ($this->auth_token === null) return false;
+		if ($auth == null) return "Domain not implemented";
+		$error = "";
+		$this->auth_token = $auth->authenticate($username, $password, $error);
+		if ($this->auth_token === null) return $error;
 		$this->domain = $domain;
 		$this->username = $username;
 		$r = DataBase::execute("SELECT * FROM Users WHERE `domain`='".DataBase::escape_string($domain)."' AND `username`='".DataBase::escape_string($username)."'");
@@ -143,6 +144,8 @@ class user_management extends Component {
 			return $this->has_right("manage_roles");
 		if ($path == "roles")
 			return $this->has_right("manage_roles");
+		if ($path == "import_users")
+			return $this->has_right("manage_users");
 		return false;
 	}
 	protected function is_service_allowed($path) {
@@ -172,6 +175,7 @@ class user_management extends Component {
 				new BooleanRight("manage_roles", "Manage roles (create/remove/edit)"),
 				new BooleanRight("assign_role", "Assign/Unassign roles to users",array(true=>array("consult_user_list"=>true,"consult_user_role"=>true))),
 				new BooleanRight("edit_user_rights", "Assign/Unassign rights to users",array(true=>array("consult_user_list"=>true,"consult_user_rights"=>true))),
+				new BooleanRight("manage_users", "Manage users",array(true=>array("consult_user_list"=>true,"consult_user_rights"=>true,"edit_user_rights"=>true,"assign_role"=>true))),
 			))
 		);
 	}

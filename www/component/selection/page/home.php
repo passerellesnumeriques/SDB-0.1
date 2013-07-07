@@ -32,6 +32,7 @@ function set_selection_campaign(select) {
 				return "<?php locale("common", "Cannot be empty")?>";
 			return null;
 		},function(name){
+			if (name == null) return;
 			ajax.post_parse_result("/dynamic/selection/service/create_campaign",{name:name},function(result){
 				if (result && result.id) {
 					var u = new URL(location.href);

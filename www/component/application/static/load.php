@@ -83,6 +83,9 @@ window.continue_loading = function() {
 		var now = new Date().getTime();
 		now -= window.loading_start;
 		text.innerHTML = window.size_str(window.size_done)+" / "+window.size_str(window.total_size) + (now > 300 ? " ("+window.size_str(window.size_done*1000/now)+"/s.)" : "");
+	} else {
+		var div = document.all ? window.parent.document.all['application_loading'] : window.parent.document.getElementById('application_loading');
+		div.style.visibility = 'visible';
 	}
 	window.nb_loading--;
 	if (window.nb_loading > window.max_loading-5) return;

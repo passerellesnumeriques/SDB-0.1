@@ -1,5 +1,7 @@
-if (typeof add_javascript != 'undefined')
+if (typeof add_javascript != 'undefined') {
 	add_javascript(get_script_path('context_menu.js')+"../animation.js");
+	add_stylesheet(get_script_path('context_menu.js')+"context_menu.css");
+}
 function context_menu(menu) {
 	if (typeof menu == "string") menu = document.getElementById(menu);
 	if (menu != null && menu.parentNode != null && menu.parentNode.nodeType == 1)
@@ -23,17 +25,19 @@ function context_menu(menu) {
 			menu.childNodes[i].onclickset = true;
 		}
 	
-	t.addItem = function(element) {
+	t.addItem = function(element, keep_onclick) {
 		element.style.position = 'static';
 		menu.appendChild(element);
-		if (typeof element.onclickset == 'undefined' && element.onclick && !element.data)
-			element.data = element.onclick;
-		element.onclick = function() {
-			t.hide();
-			if (this.data) this.data();
-			return false;
-		};
-		element.onclickset = true;
+		if (!keep_onclick) {
+			if (typeof element.onclickset == 'undefined' && element.onclick && !element.data)
+				element.data = element.onclick;
+			element.onclick = function() {
+				t.hide();
+				if (this.data) this.data();
+				return false;
+			};
+			element.onclickset = true;
+		}
 	};
 	t.addIconItem = function(icon, text, onclick) {
 		var div = document.createElement("DIV");

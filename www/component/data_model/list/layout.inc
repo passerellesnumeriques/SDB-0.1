@@ -18,7 +18,7 @@ $page->add_javascript("/static/common/js/field/field_date.js");
 $page->onload("new splitter_vertical('datalist_container',0.25);datalist_init_fields();datalist_refresh();");
 ?>
 <div style='width:100%;height:100%' id='datalist_container'>
-	<div>
+	<div style='overflow:auto'>
 		<table width=100% height=100% cellspacing=0 cellpadding=0>
 			<tr class='datalist_header'><td>
 				<input type='checkbox' checked='checked' onchange='var e = document.getElementById("datalist_refresh"); if (!this.checked) { e.style.visibility = "visible"; e.style.position = "static"; } else { e.style.visibility = "hidden"; e.style.position = "absolute"; }'/> <?php locale("data_model", "Auto refresh")?>
@@ -48,7 +48,7 @@ $page->onload("new splitter_vertical('datalist_container',0.25);datalist_init_fi
 			</td></tr>
 		</table>
 	</div>
-	<div>
+	<div style='overflow:auto'>
 		<table width=100% height=100% cellspacing=0 cellpadding=0>
 			<tr class='datalist_header'><td nowrap='nowrap'>
 				<table style='width:100%;height:100%;border:0px;margin:0px;padding:0px;border-collapse:collapse;'><tr>

@@ -11,11 +11,11 @@ class calendar extends Component {
 	public function can_read($calendar_id, $calendar = null) {
 		require_once("common/SQLQuery.inc");
 		// if owner, access allowed
-		$owned = SQLQuery::create()->select("UserCalendar")->where("calendar",$id)->where("username",PNApplication::$instance->user_management->username)->execute_single_row();
+		$owned = SQLQuery::create()->select("UserCalendar")->where("calendar",$calendar_id)->where("username",PNApplication::$instance->user_management->username)->execute_single_row();
 		if ($owned <> null) return true;
 		// check read_rights
 		if ($calendar == null) {
-			$calendar = SQLQuery::create()->select("Calendar")->where("id",$id)->execute_single_row();
+			$calendar = SQLQuery::create()->select("Calendar")->where("id",$calendar_id)->execute_single_row();
 			if ($calendar == null) return false;
 		}
 		if ($calendar["read_rights"] == null) return true;
@@ -28,11 +28,11 @@ class calendar extends Component {
 	public function can_write($calendar_id, $calendar = null) {
 		require_once("common/SQLQuery.inc");
 		// if owner, access allowed
-		$owned = SQLQuery::create()->select("UserCalendar")->where("calendar",$id)->where("username",PNApplication::$instance->user_management->username)->execute_single_row();
+		$owned = SQLQuery::create()->select("UserCalendar")->where("calendar",$calendar_id)->where("username",PNApplication::$instance->user_management->username)->execute_single_row();
 		if ($owned <> null) return true;
 		// check read_rights
 		if ($calendar == null) {
-			$calendar = SQLQuery::create()->select("Calendar")->where("id",$id)->execute_single_row();
+			$calendar = SQLQuery::create()->select("Calendar")->where("id",$calendar_id)->execute_single_row();
 			if ($calendar == null) return false;
 		}
 		if ($calendar["write_rights"] == null) return false; // if no specific rights specified, only the owner can write

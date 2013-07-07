@@ -58,9 +58,8 @@ lc_browser = {
 			if (i < 0) i = s.length;
 			var version = s.substring(0, i).trim();
 			s = s.substring(i+1);
-			if (s.length == 0) break;
 			var infos = [];
-			if (s.charAt(0) == '(') {
+			if (s.length > 0 && s.charAt(0) == '(') {
 				i = s.indexOf(')', 1);
 				if (i > 0) {
 					var ss = s.substring(1, i).trim();
@@ -168,7 +167,7 @@ function setBorderRadius(elem,
 		topright_width, topright_height, 
 		bottomleft_width, bottomleft_height, 
 		bottomright_width, bottomright_height
-		) { 
+		) {
 	elem.style.borderTopLeftRadius = topleft_width+"px "+topleft_height+"px"; 
 	elem.style.borderTopRightRadius = topright_width+"px "+topright_height+"px"; 
 	elem.style.borderBottomLeftRadius = bottomleft_width+"px "+bottomleft_height+"px"; 

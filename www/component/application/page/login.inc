@@ -4,11 +4,12 @@ if (isset($_POST["domain"]) && isset($_POST["username"]) && isset($_POST["passwo
 	global $app;
 	setcookie("domain",$_POST["domain"],time()+30*24*60*60,"/dynamic/application/page/enter");
 	setcookie("username",$_POST["username"],time()+30*24*60*60,"/dynamic/application/page/enter");
-	if ($app->user_management->login($_POST["domain"], $_POST["username"], $_POST["password"])) {
+	$error = $app->user_management->login($_POST["domain"], $_POST["username"], $_POST["password"]); 
+	if ($error === true) {
 		header("Location: enter");
 		die();
 	} else
-		$message = get_locale("application","Invalid username or password");
+		$message = get_locale("authentication","Authentication failed").": ".$error;
 }
 ?>
 <!DOCTYPE html>
@@ -76,7 +77,7 @@ if ($message <> null) {
 	</tr>
 </table>
 <br/>
-<span id='application_loading'><span><?php locale("application","Loading application")?></span> <iframe frameBorder=0 style='width:200px;height:15px;border:1px solid black;overflow:hidden;vertical-align:bottom' scrolling='no' src='/static/application/load.php?delay=100' id='frame_loading'></iframe><span id='application_loading_text' style='font-size:8pt'></span></span>
+<span id='application_loading' style='visibility:hidden'><span><?php locale("application","Loading application")?></span> <iframe frameBorder=0 style='width:200px;height:15px;border:1px solid black;overflow:hidden;vertical-align:bottom' scrolling='no' src='/static/application/load.php?delay=5000' id='frame_loading'></iframe><span id='application_loading_text' style='font-size:8pt'></span></span>
 </td></tr></table>
 </form>
 </body>

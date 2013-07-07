@@ -12,7 +12,7 @@ function collapsable_section(element) {
 	// add the icon on the right corner of the header
 	t.toggle_icon = document.createElement("IMG");
 	t.toggle_icon.src = t.path+'collapse.gif';
-	t.toggle_icon.style.float = 'right';
+	t.toggle_icon.style.cssFloat = 'right';
 	t.toggle_icon.style.marginTop = ((t.header.offsetHeight-11)/2)+'px';
 	t.toggle_icon.style.marginRight = '2px';
 	t.header.appendChild(t.toggle_icon);
@@ -35,5 +35,6 @@ function collapsable_section(element) {
 			t.toggle_icon.src = t.path+'collapse.gif';
 			t.visible = true;
 		}
+		fireLayoutEventFor(element.parentNode);
 	};
 }

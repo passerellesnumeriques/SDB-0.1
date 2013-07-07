@@ -5,8 +5,10 @@ applicant=applicant
 applicants=applicants
 applications=applications
 campaign=campaign
+create a new zone=create a new zone
 ~create ~new ~campaign=~create ~new ~campaign
 dashboard=dashboard
+dashboard by zone=dashboard by zone
 don't have a schedule yet=don't have a schedule yet
 don't have any staff assigned=don't have any staff assigned
 ~information ~sessions=~information ~sessions
@@ -16,6 +18,7 @@ interviews=interviews
 selection=selection
 ~social ~investigations=~social ~investigations
 ~written ~exams=~written ~exams
+zone=zone
 
 Please select a selection campaign=Please select a selection campaign
 

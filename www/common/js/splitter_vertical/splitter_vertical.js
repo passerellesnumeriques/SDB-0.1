@@ -23,11 +23,11 @@ function splitter_vertical(element, position) {
 		t.part2.style.left = (x+sw)+"px";
 		t.part2.style.width = (w-x-sw-1)+"px";
 		t.part2.style.height = h+"px";
+		fireLayoutEventFor(t.part1);
+		fireLayoutEventFor(t.part2);
 		if (t.element.offsetHeight != h) {
 			if (!prev_h || (t.element.offsetHeight != prev_h && call < 3)) t._position(t.element.offsetHeight, call ? 1 : call+1);
 		}
-		fireLayoutEventFor(t.part1);
-		fireLayoutEventFor(t.part2);
 	};
 	
 	t.element.style.position = "relative";

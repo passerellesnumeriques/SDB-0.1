@@ -29,9 +29,19 @@ class PNApplication {
 
 	public static $errors = array();
 	public $current_domain;
+	public $local_domain;
 	public $components = array();
 
 	public static function error($message) {
+		if ($message instanceof Exception) {
+			$e = $message;
+			$message = htmlentities($e->getMessage(), ENT_QUOTES, "UTF-8")."<ul style='margin:0px'>";
+			foreach ($e->getTrace() as $trace)
+				$message .= "<li>".$trace["file"]." line ".$trace["line"]."</li>";
+			$message .= "</ul>";
+			array_push(PNApplication::$errors, $message);
+			return;
+		}
 		array_push(PNApplication::$errors, htmlentities($message, ENT_QUOTES, "UTF-8"));
 	}
 	public static function error_html($html_message) {
@@ -68,6 +78,7 @@ class PNApplication {
 	}
 
 	public function init() {
+		$this->local_domain = file_get_contents("local_domain");
 		global $components_names;
 		foreach ($components_names as $name) $this->create_component($name);
 		$done = array();
@@ -89,6 +100,10 @@ class PNApplication {
 		$c->init();
 	}
 
+	public function get_domains() {
+		return include("domains");
+	}
+	
 	public function get_domain_descriptor($domain = null) {
 		if ($domain == null) $domain = $this->current_domain;
 		$domains = include("domains");

@@ -45,9 +45,10 @@ class Page {
 		try {
 			include $file;
 		} catch (Exception $e) {
-			PNApplication::error($e->getMessage());
+			PNApplication::error($e);
 		}
 		$content = ob_get_clean();
+		ob_end_clean();
 		if (!$this->flushed)
 			$this->start_page();
 		echo $content;
@@ -58,10 +59,17 @@ class Page {
 	public function flush() {
 		if (!$this->flushed) {
 			$this->flushed = true;
+			$content = ob_get_clean();
+			ob_end_clean();
 			$this->start_page();
+			echo $content;
+			ob_start();
+			return;
 		}
 		$content = ob_get_clean();
+		ob_end_clean();
 		echo $content;
+		ob_start();
 	}
 
 	private function start_page() {

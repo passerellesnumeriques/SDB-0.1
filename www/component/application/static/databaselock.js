@@ -83,8 +83,8 @@ if (window.top == window)
 	setTimeout("window.pn_database_locks._check();",pn_database_locks._check_time);
 
 function init_databaselock() {
-	if (typeof listenEvent == 'undefined')
-		setTimeout(init_databaselock, 10);
+	if (typeof listenEvent == 'undefined' || window.top.frames.length == 0)
+		setTimeout(init_databaselock, 100);
 	else {
 		var listener = function() {
 			if (!window || !window.top || !window.top.pn_database_locks) return;

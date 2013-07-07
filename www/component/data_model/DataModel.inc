@@ -56,6 +56,13 @@ class DataModel {
 		return $table;
 	}
 
+	public function &addSubModel($key_table) {
+		$sm = new SubDataModel($this, $key_table);
+		$this->tables[$key_table]->_key_for_submodel($sm);
+		array_push($this->sub_models, $sm);
+		return $sm;
+	}
+	
 	/** Returns the table if access is allowed.
 	 *
 	 * @param string $name name of the table to ad
@@ -63,20 +70,39 @@ class DataModel {
 	 * @throws \Exception if the table does not exist or access is not allowed
 	 */
 	public function &getTable($name) {
+		if (isset($this->tables[$name])) {
+			if ($this->tables[$name]->canAccess()) return $this->tables[$name];
+			throw new \Exception("Access denied: table ".$name);
+		}
+		foreach ($this->sub_models as &$sm) {
+			if (isset($sm->tables[$name])) {
+				if ($sm->tables[$name]->canAccess()) return $sm->tables[$name];
+				throw new \Exception("Access denied: table ".$name);
+			}
+		}
 		if (!isset($this->tables[$name])) throw new \Exception("Unknown table ".$name);
-		if ($this->tables[$name]->canAccess()) return $this->tables[$name];
-		throw new \Exception("Access denied: table ".$name);
 	}
 
 	/** should be used only in very specific places, while ensuring that this will not give privileges to the user
 	 * @return \datamodel\Table
 	 */
 	public function &internalGetTable($name) {
-		return $this->tables[$name];
+		if (isset($this->tables[$name]))
+			return $this->tables[$name];
+		foreach ($this->sub_models as &$sm)
+			if (isset($sm->tables[$name]))
+				return $sm->tables[$name];
+		throw new \Exception("Unknown table '".$name."'");
 	}
 	/** should be used only in very specific places, while ensuring that this will not give privileges to the user */
 	public function &internalGetTables() {
-		return $this->tables;
+		$a = array();
+		foreach ($this->tables as $name=>&$table)
+			$a[$name] = &$table;
+		foreach ($this->sub_models as &$sm)
+			foreach ($sm->tables as $name=>&$table)
+				$a[$name] = &$table;
+		return $a;
 	}
 
 	public function &getTables() {
@@ -84,6 +110,10 @@ class DataModel {
 		foreach ($this->tables as $name=>&$table)
 			if ($table->canAccess())
 				$a[$name] = &$table;
+		foreach ($this->sub_models as &$sm)
+			foreach ($sm->tables as $name=>&$table)
+				if ($table->canAccess())
+					$a[$name] = &$table;
 		return $a;
 	}
 
@@ -100,28 +130,23 @@ class DataModel {
 	private function hide($table, $field) {
 		$this->tables[$table]->hide($field);
 	}
-	
-	public function &addSubModel($key_table) {
-		$sm = new SubDataModel($this, $key_table);
-		$this->table[$key_table]->_key_for_submodel($sm);
-		array_push($this->sub_models, $sm);
-		return $sm;
-	}
 
 }
 
 class SubDataModel extends DataModel {
 	private $parent_model;
 	private $parent_table;
-	private $sub_model_selected = null;
-	private $existing_submodels = null;
 	
 	public function __construct(&$parent, $parent_table) {
-		$this->parent = &$parent;
+		$this->parent_model = &$parent;
 		$this->parent_table = $parent_table;
 	}
 	
+	public function &getParentModel() { return $this->parent_model; }
+	public function getParentTable() { return $this->parent_table; }
+	
 	public function create_tables($key) {
+		require_once("common/DataBaseModel.inc");
 		foreach ($this->tables as $t)
 			DataBaseModel::create_table($t, "_".$key);
 	}
@@ -130,5 +155,6 @@ class SubDataModel extends DataModel {
 		foreach ($this->tables as $t)
 			DataBase::execute("DROP TABLE `".$t->getName()."_".$key."`");
 	}
+	
 }
 ?>

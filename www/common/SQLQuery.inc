@@ -18,6 +18,7 @@ class SQLQuery {
 	}
 
 	public $database = null;
+	public $sub_models = array();
 	public $tables = array();
 	public $fields = array();
 	public $count = null;
@@ -38,6 +39,11 @@ class SQLQuery {
 	public function table_id() { return "t".($this->table_id_counter++); }
 
 	public function &database($db_name) { $this->database = $db_name; return $this; }
+	
+	public function &select_sub_model($key_table, $key) {
+		$this->sub_models[$key_table] = $key;
+		return $this;
+	}
 
 	/** Prepares a select in the given tables.
 	 * Usage:
@@ -197,44 +203,75 @@ class SQLQuery {
 	}
 
 	public function generate() {
-		if (!$this->bypass_security) {
-			// validate the query
-			require_once("component/data_model/DataModel.inc");
-			$final_fields = array();
-			foreach ($this->tables as $t=>$alias) {
-				$table = DataModel::get()->getTable($t);
-				if ($alias == null) $alias = $table->getName();
-				if (count($this->fields) == 0 && $this->count === null) {
-					foreach ($table->getColumns() as $col)
-						array_push($final_fields, array($alias, $col->name, null));
-				} else foreach ($this->fields as $f) {
-					if ($f[0] == $t || $f[0] == $alias)
-						array_push($final_fields, array($f[0], $table->getColumn($f[1])->name, $f[2])); // check the field is accessible
-				}
-				if (!$table->canReadAll())
-					foreach ($table->table_specific_read_access as $specific) {
-						$this->where($specific[0], $specific[1]());
-					}
-			}
-			foreach ($this->joins as $join) {
-				$table = DataModel::get()->getTable($join[1]);
-				$alias = $join[3];
-				if ($alias == null) $alias = $join[1];
-				if (count($this->fields) == 0 && $this->count === null) {
-					foreach ($table->getColumns() as $col)
-						array_push($final_fields, array($alias, $col->name, null));
-				} else foreach ($this->fields as $f) {
-					if ($f[0] == $join[1] || $f[0] == $alias)
-						array_push($final_fields, array($alias, $table->getColumn($f[1])->name, $f[2])); // check the field is accessible
-				}
-				if (!$table->canReadAll())
-					foreach ($table->table_specific_read_access as $specific) {
-						$this->where($specific[0], $specific[1]());
-					}
-			}
-			$this->fields = $final_fields;
-		}
+		require_once("component/data_model/DataModel.inc");
 
+		// validate the query
+		$final_fields = array();
+		foreach ($this->tables as $t=>$alias) {
+			if ($this->bypass_security)
+				$table = DataModel::get()->internalGetTable($t);
+			else
+				$table = DataModel::get()->getTable($t);
+			if ($alias == null) $alias = $table->getSQLName($this->sub_models);
+			if (count($this->fields) == 0 && $this->count === null) {
+				if ($this->bypass_security)
+					$columns = $table->internalGetColumns();
+				else
+					$columns = $table->getColumns();
+				foreach ($columns as $col)
+					array_push($final_fields, array($alias, $col->name, null));
+				unset($columns);
+			} else foreach ($this->fields as $f) {
+				if ($f[0] == $t || $f[0] == $alias) {
+					// check the field is accessible
+					if ($this->bypass_security)
+						$col = $table->internalGetColumn($f[1]);
+					else
+						$col = $table->getColumn($f[1]);
+					array_push($final_fields, array($f[0], $col->name, $f[2]));
+					unset($col);
+				}
+			}
+			if (!$this->bypass_security && !$table->canReadAll())
+				foreach ($table->table_specific_read_access as $specific) {
+					$this->where($specific[0], $specific[1]());
+				}
+				unset($table);
+		}
+		foreach ($this->joins as $join) {
+			if ($this->bypass_security)
+				$table = DataModel::get()->internalGetTable($join[1]);
+			else
+				$table = DataModel::get()->getTable($join[1]);
+			$alias = $join[3];
+			if ($alias == null) $alias = $table->getSQLName($this->sub_models);
+			if (count($this->fields) == 0 && $this->count === null) {
+				if ($this->bypass_security)
+					$columns = $table->internalGetColumns();
+				else
+					$columns = $table->getColumns();
+				foreach ($columns as $col)
+					array_push($final_fields, array($alias, $col->name, null));
+				unset($columns);
+			} else foreach ($this->fields as $f) {
+				if ($f[0] == $join[1] || $f[0] == $alias) {
+					// check the field is accessible
+					if ($this->bypass_security)
+						$col = $table->internalGetColumn($f[1]);
+					else
+						$col = $table->getColumn($f[1]);
+					array_push($final_fields, array($alias, $col->name, $f[2]));
+					unset($col);
+				}
+			}
+			if (!$this->bypass_security && !$table->canReadAll())
+				foreach ($table->table_specific_read_access as $specific) {
+					$this->where($specific[0], $specific[1]());
+				}
+			unset($table);
+		}
+		$this->fields = $final_fields;
+		
 		$sql = "SELECT ";
 		if (count($this->fields) == 0 && $this->count === null && $this->bypass_security)
 			$sql .= "*";
@@ -257,13 +294,16 @@ class SQLQuery {
 		foreach ($this->tables as $name=>$alias) {
 			if ($first) $first = false; else $sql .= ",";
 			if ($this->database) $sql .= "`".$this->database."`.";
-			$sql .= "`".$name."`";
+			$table = DataModel::get()->internalGetTable($name);
+			$sql .= "`".$table->getSQLName($this->sub_models)."`";
 			if ($alias <> null) $sql .= " AS `".$alias."`";
+			unset($table);
 		}
 		foreach ($this->joins as $join) {
 			$sql .= " LEFT JOIN ";
 			if ($this->database) $sql .= "`".$this->database."`.";
-			$sql .= "`".$join[1]."`";
+			$table = DataModel::get()->internalGetTable($join[1]);
+			$sql .= "`".$table->getSQLName($this->sub_models)."`";
 			if ($join[3] <> null) $sql .= " AS `".$join[3]."`";
 			$sql .= " ON ";
 			$first = true;
@@ -271,10 +311,11 @@ class SQLQuery {
 				if ($first) $first = false; else $sql .= " AND ";
 				$sql .= "`".$join[0]."`.`".$field_from."`=";
 				if (is_string($field_to))
-					$sql .= "`".($join[3] <> null ? $join[3] : $join[1])."`.`".$field_to."`";
+					$sql .= "`".($join[3] <> null ? $join[3] : $table->getSQLName($this->sub_models))."`.`".$field_to."`";
 				else
 					$sql .= "'".DataBase::escape_string($field_to[0])."'";
 			}
+			unset($table);
 		}
 		if (count($this->where) > 0) {
 			$sql .= " WHERE ";
@@ -346,55 +387,14 @@ class SQLQuery {
 		require_once("component/data_model/DataModel.inc");
 		/* @var $t datamodel\Table */
 		$t = DataModel::get()->getTable($table);
-		$sql = "UPDATE `".$table."` SET ";
-		$first = true;
-		foreach ($fields_values as $field=>$value) {
-			if (!$t->canModifyField($field)) throw new Exception("Access denied for column '".$field."' on table '".$table."'");
-			if ($first) $first = false; else $sql .= ",";
-			$sql .= "`".$field."`=";
-			if ($value === null) $sql .= "NULL";
-			else $sql .= "'".DataBase::$conn->escape_string($value)."'";
-		}
-		if ($where <> null) {
-			$sql .= " WHERE ";
-			if (is_string($where)) $sql .= $where;
-			else {
-				$first = true;
-				foreach ($where as $field=>$value) {
-					if ($first) $first = false; else $sql .= " AND ";
-					$sql .= "`".$field."`";
-					if ($value === null) $sql .= " IS NULL";
-					else $sql .= "='".DataBase::$conn->escape_string($value)."'";
-				}
-			}
-		}
-		DataBase::$conn->execute($sql);
-		if (DataBase::$conn->get_last_error_number() == 0)
-			return DataBase::$conn->affected_rows();
-		return -1;
+		return $t->update($fields_values, $where);
 	}
 
 	public static function insert($table, $fields_values) {
 		require_once("component/data_model/DataModel.inc");
 		/* @var $t datamodel\Table */
 		$t = DataModel::get()->getTable($table);
-		if (!$t->canAdd()) throw new Exception("Access denied to add an entry in table '".$table."'");
-		$sql = "INSERT INTO `".$table."` (";
-		$first = true;
-		foreach ($fields_values as $field=>$value) {
-			if ($first) $first = false; else $sql .= ",";
-			$sql .= "`".$field."`";
-		}
-		$sql .= ") VALUES (";
-		$first = true;
-		foreach ($fields_values as $field=>$value) {
-			if ($first) $first = false; else $sql .= ",";
-			if ($value === null) $sql .= "NULL";
-			else $sql .= "'".DataBase::$conn->escape_string($value)."'";
-		}
-		$sql .= ")";
-		DataBase::$conn->execute($sql);
-		return DataBase::$conn->get_insert_id();
+		return $t->insert($fields_values);
 	}
 
 	public static function remove_key($table, $key) {
