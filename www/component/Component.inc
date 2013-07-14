@@ -52,10 +52,13 @@ abstract class Component {
 		}
 		Locale::$current_component = $this->name;
 		ob_start();
-		include $file;
+		$json = include $file;
 		$result = ob_get_clean();
 		if ($result === "") $result = null;
-		PNApplication::print_json_result($result);
+		if ($json) 
+			PNApplication::print_json_result($result);
+		else
+			echo $result;
 	}
 	
 	public function dependencies() { return array(); }

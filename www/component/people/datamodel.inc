@@ -1,4 +1,5 @@
 <?php
+/* @var $model DataModel */
 $model->addDataCategoryLink("Personal Information", "/dynamic/people/page/profile?plugin=people&people=%People.id%");
 $model->addTable("People")
 	->addPrimaryKey("id")
@@ -8,6 +9,8 @@ $model->addTable("People")
 	->addString("khmer_name", 100, 1, false)
 	->addEnum("sex", array("M","F"))
 	->addDate("birth", true)
+	->addForeignKey("picture", "Storage")
+	->addInteger("picture_version")
 	->addDisplayableData("first_name", "Personal Information", "First Name")
 	->addDisplayableData("middle_name", "Personal Information", "Middle Name")
 	->addDisplayableData("last_name", "Personal Information", "Last Name")

@@ -1,6 +1,8 @@
 <?php
 class people extends Component {
 
+	public function dependencies() { return array("storage"); }
+	
 	public function get_readable_rights() {
 		return array(
 			new AccessRightCategory("people","Personal Information",array(
@@ -25,6 +27,13 @@ class people extends Component {
 			if ($_GET["people"] == PNApplication::$instance->user_people->user_people_id) return true;
 			return $this->app->user_management->has_right("see_other_people_details");
 		}
+		if ($path == "set_picture") return true;
+		if ($path == "import")
+			return $this->app->user_management->has_right("edit_people_details");
+		return false;
+	}
+	protected function is_service_allowed($path) {
+		if ($path == "picture") return true;
 		return false;
 	}
 

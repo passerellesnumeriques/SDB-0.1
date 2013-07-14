@@ -22,6 +22,7 @@ class DataBaseSystem_MySQL extends DataBaseSystem {
 	}
 
 	protected function execute_sql($sql_query) {
+		//echo $sql_query."<br/><br/>";
 		return mysql_query($sql_query, $this->conn);
 	}
 

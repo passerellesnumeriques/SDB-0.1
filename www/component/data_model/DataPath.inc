@@ -135,6 +135,18 @@ class DataPathBuilder {
 		return null;
 	}
 
+	/**
+	 * @param \datamodel\Table $table
+	 * @return DataPath[]
+	 */
+	public static function find_all_possible_paths_from($table) {
+		$current_path = new DataPathRoot($table->getName());
+		$paths = array($current_path);
+		$visited_tables = array();
+		DataPathBuilder::find_possible_paths(DataModel::get(), $current_path, $paths, $visited_tables);
+		return $paths;
+	}
+	
 	public static function find_possible_paths(DataModel &$model, DataPath $current_path, &$paths, &$visited_tables) {
 		// avoid infinite recursion
 		if (in_array($current_path->table, $visited_tables)) return;

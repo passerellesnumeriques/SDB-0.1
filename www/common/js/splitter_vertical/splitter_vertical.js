@@ -1,3 +1,5 @@
+if (typeof add_stylesheet != 'undefined')
+	add_stylesheet(get_script_path('splitter_vertical.js')+"splitter_vertical.css");
 function splitter_vertical(element, position) {
 	if (typeof element == 'string') element = document.getElementById(element);
 	var t = this;

@@ -19,8 +19,12 @@ class selection extends Component {
 	}
 
 	protected function is_page_allowed($path) {
-		if ($this->app->user_management->has_right("consult_selection")) return true;
-		return false;
+		switch ($path) {
+			case "application_forms/edit_templates":
+				return $this->app->user_management->has_right("edit_selection");
+			default:
+				return $this->app->user_management->has_right("consult_selection");
+		}
 	}
 
 	protected function is_service_allowed($path) {
