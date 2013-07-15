@@ -113,7 +113,7 @@ case "dynamic":
 	global $app;
 	if (!isset($_SESSION["app"])) {
 		$app = new PNApplication();
-		$app->current_domain = file_get_contents("local_domain");
+		$app->current_domain = file_get_contents("conf/local_domain");
 		$app->init();
 		$_SESSION["app"] = &$app;
 	} else

@@ -76,6 +76,10 @@ ajax = {
 		        handler(null);
 			} else if (ct == "text/json") {
 				// JSON
+				if (xhr.responseText.length == 0) {
+					eh("Empty response from the server");
+					return;
+				}
 				var output;
 		        try {
 		        	output = eval("("+xhr.responseText+")");

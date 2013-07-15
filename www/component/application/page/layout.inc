@@ -61,8 +61,7 @@ $this->onload("new horizontal_menu('application_menu');application_resize_frame(
 			<img src='/static/application/database.png' style='vertical-align:bottom'/>
 			<select style='padding:0px;margin:0px' onchange="location.href='/dynamic/application/service/set_domain?format=xml&domain='+this.value;">
 			<?php
-			$domains = include("domains");
-			foreach ($domains as $domain=>$descr)
+			foreach (PNApplication::$instance->get_domains() as $domain=>$descr)
 				echo "<option value='".$domain."'".($domain == PNApplication::$instance->current_domain ? " selected" : "").">".$domain."</option>";
 			?>
 			</select>

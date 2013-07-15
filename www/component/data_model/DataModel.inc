@@ -28,15 +28,17 @@ class DataModel {
 		$file = "component/".$c->name."/datamodel.inc";
 		if (file_exists($file))
 			include $file;
-		$file = "component/".$c->name."/datamodel_hidden.inc";
-		if (file_exists($file)) {
-			$hidden = include $file;
-			$hidden = $hidden[PNApplication::$instance->current_domain];
-			foreach ($hidden as $field) {
-				$i = strpos($field, ".");
-				$table = substr($field, 0, $i);
-				$field = substr($field, $i+1);
-				$model->hide($table,$field);
+		if (PNApplication::$instance->current_domain <> null) {
+			$file = "component/".$c->name."/datamodel_hidden.inc";
+			if (file_exists($file)) {
+				$hidden = include $file;
+				$hidden = $hidden[PNApplication::$instance->current_domain];
+				foreach ($hidden as $field) {
+					$i = strpos($field, ".");
+					$table = substr($field, 0, $i);
+					$field = substr($field, $i+1);
+					$model->hide($table,$field);
+				}
 			}
 		}
 	}

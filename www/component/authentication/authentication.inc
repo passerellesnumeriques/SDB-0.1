@@ -2,7 +2,7 @@
 class authentication extends Component {
 
 	public function get_authentication_system($domain) {
-		$local = file_get_contents("local_domain");
+		$local = PNApplication::$instance->local_domain;
 		switch ($domain) {
 			case "PNP":
 				if ($local == "PNP") {

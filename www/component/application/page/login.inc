@@ -42,9 +42,10 @@ if ($message <> null) {
 		<td>
 			<select name="domain">
 				<?php
-				$domains = include("domains");
-				foreach ($domains as $domain=>$descr)
-					echo "<option value=\"".$domain."\"".(@$_COOKIE["domain"]==$domain ? " selected" : "").">".$domain."</option>";
+				$def_domain = PNApplication::$instance->local_domain;
+				if (isset($_COKKIE["domain"])) $def_domain = $_COKKIE["domain"];
+				foreach (PNApplication::$instance->get_domains() as $domain=>$descr)
+					echo "<option value=\"".$domain."\"".($def_domain==$domain ? " selected" : "").">".$domain."</option>";
 				?>
 			</select>
 		</td>

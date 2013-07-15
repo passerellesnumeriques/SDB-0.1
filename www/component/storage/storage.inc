@@ -10,6 +10,10 @@ class storage extends Component {
 		return true;
 	}
 	
+	private static function storage_path() {
+		return file_get_contents("conf/local_storage");
+	}
+	
 	private function remove_old() {
 		DataBase::execute("DELETE FROM `Storage` WHERE `expire` IS NOT NULL AND `expire` < ".time());
 	}
@@ -29,7 +33,7 @@ class storage extends Component {
 		$dir2 = ($id/100)%100;
 		$dir3 = ($id/10000)%100;
 		$filename = intval($id/1000000);
-		$path = dirname($_SERVER["SCRIPT_FILENAME"])."/storage";
+		$path = storage::storage_path();
 		if (!file_exists($path."/".$dir1)) {
 			if (!mkdir($path."/".$dir1)) {
 				PNApplication::error("Unable to create directory ".$path."/".$dir1);
@@ -82,7 +86,7 @@ class storage extends Component {
 		$dir2 = ($id/100)%100;
 		$dir3 = ($id/10000)%100;
 		$filename = intval($id/1000000);
-		$path = dirname($_SERVER["SCRIPT_FILENAME"])."/storage/".$dir1."/".$dir2."/".$dir3."/".$filename;
+		$path = storage::storage_path()."/".$dir1."/".$dir2."/".$dir3."/".$filename;
 		return $path;
 	}
 	

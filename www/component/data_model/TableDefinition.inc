@@ -738,7 +738,7 @@ abstract class Column {
 	public function validate($value) { return $value; }
 
 	public function create_javascript_field(&$page, $editable = false, $onchanged = null, $onunchanged = null) {
-		$page->add_javascript("/static/js/field/field_text.js");
+		$page->add_javascript("/static/common/js/field/field_text.js");
 		return "new field_text()";
 	}
 
@@ -833,6 +833,15 @@ class ColumnEnum extends Column {
 		}
 		$sql .= ")";
 		return $sql;
+	}
+	
+	public function create_javascript_field(&$page, $editable = false, $onchanged = null, $onunchanged = null) {
+		if (!$editable) return parent::create_javascript_field($page, false);
+		$page->add_javascript("/static/common/js/field/field_enum.js");
+		$values = "[";
+		for ($i = 0; $i < count($this->values); $i++)
+		$values .= "]";
+		return "new field_enum(".$this->max_length.",".($onchanged <> null ? $onchanged : 'null').",".($onunchanged <> null ? $onunchanged : 'null').")";
 	}
 }
 

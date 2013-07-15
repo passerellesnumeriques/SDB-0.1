@@ -68,7 +68,7 @@ function excel(container) {
 				t.set_selection(tab.title, 0, 0, 0, 0);
 				return;
 			}
-			if (event.ctrlKey) {
+			if (event.ctrlKey || event.shiftKey) {
 				switch (key) {
 				case 37: // left
 					if (t.selection[4] > t.selection[2])
@@ -94,16 +94,7 @@ function excel(container) {
 					break;
 				}
 				var cell = t.get_cell(tab.title, t.selection[3], t.selection[4]);
-				var x = absoluteLeft(cell, container);
-				if (x < container.scrollLeft)
-					container.scrollLeft = x;
-				else if (container.scrollLeft+container.clientWidth < x+cell.offsetWidth)
-					container.scrollLeft = x+cell.offsetWidth-container.clientWidth;
-				var y = absoluteTop(cell, container);
-				if (y < container.scrollTop)
-					container.scrollTop = y;
-				else if (container.scrollTop+container.clientHeight < y+cell.offsetHeight)
-					container.scrollTop = y+cell.offsetHeight-container.clientHeight;
+				scrollToSee(cell);
 			} else {
 				switch (key) {
 				case 37: // left
@@ -134,16 +125,7 @@ function excel(container) {
 					break;
 				}
 				var cell = t.get_cell(tab.title, t.selection[1], t.selection[2]);
-				var x = absoluteLeft(cell, container);
-				if (x < container.scrollLeft)
-					container.scrollLeft = x;
-				else if (container.scrollLeft+container.clientWidth < x+cell.offsetWidth)
-					container.scrollLeft = x+cell.offsetWidth-container.clientWidth;
-				var y = absoluteTop(cell, container);
-				if (y < container.scrollTop)
-					container.scrollTop = y;
-				else if (container.scrollTop+container.clientHeight < y+cell.offsetHeight)
-					container.scrollTop = y+cell.offsetHeight-container.clientHeight;
+				scrollToSee(cell);
 			}
 		}
 	};
@@ -238,7 +220,7 @@ function excel(container) {
 			t.selection = [sheet,row1,col1,row2,col2];
 			if (t.selection_div)
 				t.selection_div.parentNode.removeChild(t.selection_div);
-			var area = t._create_area(sheet,row1,col1,row2,col2,null,"rgba(128,128,255,0.5)",2,"#0000FF");
+			var area = t._create_area(sheet,row1,col1,row2,col2,null,"rgba(128,128,255,0.3)",2,"#4040FF");
 			t.selection_div = area.div;
 		}
 		if (t.onselectionchange) t.onselectionchange(t);
@@ -246,7 +228,7 @@ function excel(container) {
 	t.areas = [];
 	t.add_area = function(id,sheet, row1, col1, row2, col2, text, r,g,b) {
 		var border_color = "rgb("+r+","+g+","+b+")";
-		var bgcolor = "rgba("+(r<128 ? r+128 : 255)+","+(g<128 ? g+128 : 255)+","+(b<128 ? b+128 : 255)+",0.5)";
+		var bgcolor = "rgba("+(r<128 ? r+128 : 255)+","+(g<128 ? g+128 : 255)+","+(b<128 ? b+128 : 255)+",0.3)";
 		var area = t._create_area(sheet, row1, col1, row2, col2, text, bgcolor,1,border_color);
 		area.id = id;
 		t.areas.push(area);
@@ -273,17 +255,19 @@ function excel(container) {
 		var cell1 = t.get_cell(sheet, row1, col1);
 		var cell2 = t.get_cell(sheet, row2, col2);
 		var container = t.get_sheet_container(sheet);
-		var x = absoluteLeft(cell1,container)-2;
-		var y = absoluteTop(cell1,container)-2;
-		var w = absoluteLeft(cell2,container)+cell2.offsetWidth-x-2;
-		var h = absoluteTop(cell2,container)+cell2.offsetHeight-y-2;
+		var x = absoluteLeft(cell1,container);
+		var y = absoluteTop(cell1,container);
+		var w = absoluteLeft(cell2,container)+cell2.offsetWidth-x-border_size*2+1;
+		var h = absoluteTop(cell2,container)+cell2.offsetHeight-y-border_size*2+1;
 		area.div.style.left = x+"px";
 		area.div.style.top = y+"px";
 		area.div.style.width = w+"px";
 		area.div.style.height = h+"px";
 		area.div.style.verticalAlign = "middle";
 		area.div.style.textAlign = "center";
-		if (text) area.div.innerHTML = text;
+		area.div.style.overflow = "hidden";
+		//area.div.style.fontWeight = "bold";
+		if (text) area.div.innerHTML = "<span style='background-color:rgba(255,255,255,0.7);padding:0px 2px 0px 2px'>"+text+"</span>";
 		container.appendChild(area.div);
 		return area;
 	};

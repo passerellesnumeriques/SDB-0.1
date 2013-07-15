@@ -37,10 +37,68 @@ function import_wizard(&$page,$storage_id, $start_table, $sub_models) {
 		PNApplication::$instance->storage->set_expire($storage_id, time()+30*60);
 		require_once("common/PHPExcel.php");
 		$excel = PHPExcel_IOFactory::load(PNApplication::$instance->storage->get_data_path($storage_id));
+		require_once("component/data_model/DataModel.inc");
 
+		$cols = array();
+		$max_nb_values = 0;
+		$tables = array();
+		foreach ($_SESSION["data_import_wizard"]["fields"] as $field) {
+			$i = strpos($field[0], ".");
+			$table = substr($field[0], 0, $i);
+			if (!in_array($table, $tables)) array_push($tables, $table);
+			$table = DataModel::get()->getTable($table);
+			$column = substr($field[0],$i+1);
+			$values = array();
+			$sheet = $excel->getSheetByName($field[1]);
+			for ($row = $field[2]; $row <= $field[4]; $row++)
+				for ($col = $field[3]; $col <= $field[5]; $col++) {
+					array_push($values, $sheet->getCellByColumnAndRow($col, $row+1)->getCalculatedValue());			
+				}
+			if (count($values) > $max_nb_values) $max_nb_values = count($values);
+			array_push($cols, array($table, $column, $values));
+		}
+		$other_fields = array();
+		foreach ($tables as $table) {
+			$table = DataModel::get()->getTable($table);
+			foreach ($table->getDisplayableData() as $field=>$name) {
+				$found = false;
+				foreach ($cols as $col) if ($col[0]->getName() == $table->getName() && $col[1] == $field) { $found = true; break; }
+				if (!$found) array_push($other_fields, array($table, $field));
+			}
+		}
+				
 		$content .= "<div style='overflow:auto;width:100%;height:100%'>";
 		$content .= "<form name='validate_import' method='POST'>";
-		// TODO
+		$content .= "<table style='border:1px solid black' rules='all'>";
+		$content .= "<tr>";
+		$script .= "var cols_fields = [];";
+		foreach ($cols as $col) {
+			$name = $col[0]->getDisplayableDataName($col[1]);
+			$content .= "<th>".$name."</th>";
+			$script .= "cols_fields.push(".$col[0]->getColumn($col[1])->create_javascript_field($page, true).");";
+		}
+		$script .= "\r\n";
+		foreach ($other_fields as $field) {
+			$name = $field[0]->getDisplayableDataName($field[1]);
+			$content .= "<th>".$name."</th>"; 
+		}
+		$content .= "</tr>";
+		for ($row = 0; $row < $max_nb_values; $row++) {
+			$content .= "<tr>";
+			for ($col = 0; $col < count($cols); $col++) {
+				$column = $cols[$col];
+				$content .= "<td id='imported_value_".$row."_".$col."'>";
+				$value = $column[2][$row];
+				$script .= "cols_fields[".$col."].create(document.getElementById('imported_value_".$row."_".$col."'),".json_encode($value).");";
+				$content .= "</td>";
+			}
+			$content .= "</tr>";
+		}
+		$content .= "</table>";
+		// TODO check if it seems some data are already there
+		// TODO check if mandatory information are missing
+		// TODO propose to fill other fields with values... or by importing from other file ?
+		// TODO propose additional ? like attach pictures ?...
 		$content .= "</form>";
 		$content .= "</div>";
 	}
@@ -53,7 +111,7 @@ function import_wizard(&$page,$storage_id, $start_table, $sub_models) {
 		$content .= "<div id='wizard_container' style='overflow:auto'>";
 		
 		$script .= "var excel_file = new excel('excel_container');";
-		$script .= "excel_file.onload = function() { var e = document.getElementById('excel_file'); e.style.width='100%'; e.style.height='100%'; triggerEvent(window, 'resize'); highlight_selection(); };";
+		$script .= "excel_file.onload = function() { var e = document.getElementById('excel_file'); e.style.width='100%'; e.style.height='100%'; triggerEvent(window, 'resize'); ".($step == "select_fields" ? "highlight_selection();" : "")."};";
 		$script .= "excel_file.load(".$storage_id.",30*60);";
 		$script .= "new splitter_vertical('import_content',0.5);";
 
@@ -203,7 +261,7 @@ function select_range(link) {
 	span.style.fontWeight = "bold";
 	container.appendChild(document.createElement("BR"));
 	var button = document.createElement("BUTTON");
-	button.innerHTML = "Ok";
+	button.innerHTML = locale.get_string("Ok");
 	container.appendChild(button);
 	button.onclick = function() {
 		var selection = excel_file.selection;
@@ -227,6 +285,21 @@ function select_range(link) {
 			form.elements['field_import_'+index+'_row2'].value = "-1";
 			form.elements['field_import_'+index+'_col2'].value = "-1";
 		}
+		if (selection == null)
+			link.innerHTML = "Select a range";
+		else
+			link.innerHTML = ((selection[3]-selection[1]+1)*(selection[4]-selection[2]+1))+" value(s) selected on sheet "+selection[0];
+		highlight_selection();
+	};
+	button = document.createElement("BUTTON");
+	button.innerHTML = locale.get_string("Cancel");
+	container.appendChild(button);
+	button.onclick = function() {
+		excel_file.disable_select();
+		while (container.childNodes.length > 0)
+			container.removeChild(container.childNodes[0]);
+		for (var i = 0; i < prev_content.length; ++i)
+			container.appendChild(prev_content[i]);
 		if (selection == null)
 			link.innerHTML = "Select a range";
 		else
@@ -258,7 +331,7 @@ function highlight_selection() {
 			form.elements['field_import_'+index+'_row2'].value,
 			form.elements['field_import_'+index+'_col2'].value,
 			form.elements['field_import_'+index+'_sheet'].parentNode.previousSibling.innerHTML,
-			0,255,0
+			255,64,96
 		);
 	}
 }

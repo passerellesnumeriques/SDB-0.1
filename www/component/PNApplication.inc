@@ -78,7 +78,7 @@ class PNApplication {
 	}
 
 	public function init() {
-		$this->local_domain = file_get_contents("local_domain");
+		$this->local_domain = file_get_contents("conf/local_domain");
 		global $components_names;
 		foreach ($components_names as $name) $this->create_component($name);
 		$done = array();
@@ -101,12 +101,12 @@ class PNApplication {
 	}
 
 	public function get_domains() {
-		return include("domains");
+		return include("conf/domains");
 	}
 	
 	public function get_domain_descriptor($domain = null) {
 		if ($domain == null) $domain = $this->current_domain;
-		$domains = include("domains");
+		$domains = include("conf/domains");
 		return $domains[$domain];
 	}
 }

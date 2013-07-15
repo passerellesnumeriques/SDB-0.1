@@ -1,1 +1,0 @@
-this directory must be accessible read/write, for the application to store files

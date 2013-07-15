@@ -8,7 +8,7 @@ if (PNApplication::has_errors()) {
 	die();
 }
 
-$domains = include("domains");
+$domains = PNApplication::$instance->get_domains();
 foreach ($domains as $domain=>$descr) {
 	echo "Initialize DataBase for domain ".$domain."<br/>";
 	$res = DataBase::$conn->execute("CREATE DATABASE IF NOT EXISTS students_".$domain);
@@ -26,7 +26,7 @@ foreach ($domains as $domain=>$descr) {
 	flush();
 }
 
-$local_domain = file_get_contents("local_domain", true);
+$local_domain = PNApplication::$instance->local_domain;
 $res = DataBase::$conn->execute("USE students_".$local_domain);
 echo "Insert test data for local domain ".$local_domain."<br/>";
 

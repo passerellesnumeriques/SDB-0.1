@@ -16,8 +16,9 @@ class DataBase {
 
 }
 
-// TODO from configuration
-require_once("common/DataBaseSystem_MySQL.inc");
-DataBase::$conn = new DataBaseSystem_MySQL();
-DataBase::$conn->connect("localhost", "root", "");
+$db_conf = include("conf/local_db");
+require_once("common/DataBaseSystem_".$db_conf["type"].".inc");
+$db_system_class = "DataBaseSystem_".$db_conf["type"];
+DataBase::$conn = new $db_system_class;
+DataBase::$conn->connect($db_conf["server"], $db_conf["user"], $db_conf["password"]);
 ?>
