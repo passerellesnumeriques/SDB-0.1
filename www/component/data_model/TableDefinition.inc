@@ -451,15 +451,22 @@ class Table {
 	}
 
 	/** Remove the data having the given primary key, and all linked data */
-	public function remove_key($key) {
-		// TODO sub models + customization
+	public function remove_key($key, $sub_models = null) {
+		$this->remove_keys(array($key), $sub_models);		
+	}
+	/** Remove data with given primary keys */
+	public function remove_keys($keys, $sub_models = null) {
 		// search for all tables that may contain a data to remove
-		$tables = array(&$this);
-		$this->search_tables_for_remove($tables);
+		$tables = array();
+		$sub_model_instance = null;
+		if ($this->model instanceof \SubDataModel) $sub_model_instance = $sub_models[$this->model->getParentTable()];
+		$this->search_tables_for_remove($tables, $sub_model_instance);
+
 		// check we can access all the tables
 		foreach ($tables as $t)
 			if (!$t->canRemove())
 				throw new \Exception("Access denied: remove data from table ".$t->name);
+		
 		// lock all the tables
 		require_once("common/DataBaseLock.inc");
 		require_once("common/SQLQuery.inc");
@@ -473,98 +480,134 @@ class Table {
 				throw new \Exception("Access denied: the table ".$t->name." is locked by ".$locker);
 			}
 		}
+		
 		// remove data
-		$this->perform_remove($key);
-		// sub models
+		foreach ($keys as $key)
+			$this->perform_remove($key, $sub_model_instance);
+		
+		// clean sub models linked to this table
 		foreach ($this->_key_submodels as &$sm) {
 			$sm->remove_tables($key);
 		}
-		// unlock tables
-		foreach ($locks as $l)
-			\DataBaseLock::unlock($l);
-	}
-	/** Remove data with given primary keys */
-	public function remove_keys($keys) {
-		// TODO sub models + customization
-		// search for all tables that may contain a data to remove
-		$tables = array(&$this);
-		$this->search_tables_for_remove($tables);
-		// check we can access all the tables
-		foreach ($tables as $t)
-			if (!$t->canRemove())
-				throw new \Exception("Access denied: remove data from table ".$t->name);
-		// lock all the tables
-		require_once("common/DataBaseLock.inc");
-		require_once("common/SQLQuery.inc");
-		$locker = null;
-		$locks = array();
-		foreach ($tables as $t) {
-			$lock = \DataBaseLock::lock($t->name, null, $locker, false);
-			if ($lock == null) {
-				foreach ($locks as $l)
-					\DataBaseLock::unlock($l);
-				throw new \Exception("Access denied: the table ".$t->name." is locked by ".$locker);
-			}
-		}
-		// remove data
-		foreach ($keys as $key)
-			$this->perform_remove($key);
-		// sub models
-		foreach ($keys as $key)
-			foreach ($this->_key_submodels as &$sm) {
-				$sm->remove_tables($key);
-			}
+		
 		// unlock tables
 		foreach ($locks as $l)
 			\DataBaseLock::unlock($l);
 	}
 	/** Remove entries corresponding to the given rows */
 	public function remove_rows($rows) {
-		// TODO sub models + customization
 		$keys = array();
 		$pk = $this->getPrimaryKey()->name;
 		foreach ($rows as $r) array_push($keys, $r[$pk]);
 		$this->remove_keys($keys);
 	}
 
-	private function search_tables_for_remove(&$tables) {
-		// TODO sub models + customization
-		foreach ($this->model->internalGetTables() as $t) {
-			if (in_array($t, $tables)) continue;
-			foreach ($t->columns as $col)
-				if ($col instanceof ForeignKey && $col->foreign_table == $this->name) {
-					array_push($tables, $t);
-					$t->search_tables_for_remove($tables);
-					break;
+	private function search_tables_for_remove(&$tables, $sub_model_instance) {
+		// check we didn't reach this table yet
+		foreach ($tables as $t)
+			if ($t[0] == $this && $t[1] == $sub_model_instance)
+				return;
+		array_push($tables, array(&$this,$sub_model_instance));
+		
+		if ($this->model instanceof \SubDataModel) {
+			// we are in a sub model: everything must be inside this sub model
+			foreach ($this->model->internalGetTables() as $t) {
+				$cols = $t->_getColumns(array($this->model->getParentTable()=>$sub_model_instance));
+				foreach ($cols as $col)
+					if ($col instanceof ForeignKey && $col->foreign_table == $this->name)
+						$t->search_tables_for_remove($tables, $sub_model_instance);
+			}
+		} else {
+			// we are on the root model, we may have link everywhere
+			foreach (DataModel::get()->internalGetTables() as $t) {
+				if ($t->model instanceof \SubDataModel) {
+					foreach ($t->model->getExistingInstances() as $smi) {
+						$sm = array($t->model->getParentTable()=>$smi);
+						$cols = $t->_getColumns($sm);
+						foreach ($cols as $col)
+							if ($col instanceof ForeignKey && $col->foreign_table == $this->name)
+								$t->search_tables_for_remove($tables, $sm);
+					}
+				} else {
+					$cols = $t->_getColumns(null);
+					foreach ($cols as $col)
+						if ($col instanceof ForeignKey && $col->foreign_table == $this->name)
+							$t->search_tables_for_remove($tables, null);
 				}
+			}
 		}
 	}
 
-	private function perform_remove($key) {
-		// TODO sub models + customization
+	private function perform_remove($key, $sub_model_instance) {
 		// remove data
-		\DataBase::$conn->execute("DELETE FROM `".$this->name."` WHERE `".$this->getPrimaryKey()->name."`=".$key);
+		\DataBase::$conn->execute("DELETE FROM `".$this->name.($sub_model_instance !== null ? "_".$sub_model_instance : "")."` WHERE `".$this->getPrimaryKey()->name."`=".$key);
+		
 		// remove linked data
 		require_once("common/SQLQuery.inc");
-		foreach ($this->model->internalGetTables() as $t) {
-			foreach ($t->columns as $col)
-				if ($col instanceof ForeignKey && $col->foreign_table == $this->name) {
-					if ($t->getPrimaryKey() <> null) {
-						$linked = \SQLQuery::create()->select($t->name)->field($t->getPrimaryKey()->name)->where($col->name, $key)->execute_single_field();
-						if ($linked)
-						foreach ($linked as $linked_key)
-							$t->perform_remove($linked_key);
-					} else {
-						// no primary key, just remove the entries
-						\DataBase::$conn->execute("DELETE FROM `".$t->name."` WHERE `".$col->name."`=".$key);
+		foreach (DataModel::get()->internalGetTables() as $t) {
+			if ($t->model instanceof \SubDataModel) {
+				if ($this->model instanceof \SubDataModel) {
+					// if we are on two different sub-models, we cannot have links
+					if ($this->model->getParentTable() <> $t->model->getParentTable()) continue;
+					// we need to be on the same sub model instance
+					$sm = array($t->model->getParentTable()=>$sub_model_instance);
+					$cols = $t->_getColumns($sm);
+					foreach ($cols as $col) {
+						if ($col instanceof ForeignKey && $col->foreign_table == $this->name) {
+							if ($t->getPrimaryKey() <> null) {
+								$linked = \SQLQuery::create()->select($t->getSQLName($sm))->field($t->getPrimaryKey()->name)->where($col->name, $key)->execute_single_field();
+								if ($linked)
+									foreach ($linked as $linked_key)
+										$t->perform_remove($linked_key, $sub_model_instance);
+							} else {
+								// no primary key, just remove the entries
+								\DataBase::$conn->execute("DELETE FROM `".$t->getSQLName($sm)."` WHERE `".$col->name."`=".$key);
+							}
+						}
 					}
-					break;
+				} else {
+					// we need to check for each instance of the sub model
+					foreach ($t->model->getExistingInstances() as $smi) {
+						$sm = array($t->model->getParentTable()=>$smi);
+						$cols = $t->_getColumns($sm);
+						foreach ($cols as $col) {
+							if ($col instanceof ForeignKey && $col->foreign_table == $this->name) {
+								if ($t->getPrimaryKey() <> null) {
+									$linked = \SQLQuery::create()->select($t->getSQLName($sm))->field($t->getPrimaryKey()->name)->where($col->name, $key)->execute_single_field();
+									if ($linked)
+										foreach ($linked as $linked_key)
+											$t->perform_remove($linked_key, $sub_model_instance);
+								} else {
+									// no primary key, just remove the entries
+									\DataBase::$conn->execute("DELETE FROM `".$t->getSQLName($sm)."` WHERE `".$col->name."`=".$key);
+								}
+							}
+						}
+					}
 				}
+			} else {
+				// t is not in a sub-model
+				// if this is in a sub-model, no possible link
+				if ($this->model instanceof \SubDataModel) continue;
+				// both are on root
+				foreach ($t->_getColumns(null) as $col) {
+					if ($col instanceof ForeignKey && $col->foreign_table == $this->name) {
+						if ($t->getPrimaryKey() <> null) {
+							$linked = \SQLQuery::create()->select($t->getSQLName(null))->field($t->getPrimaryKey()->name)->where($col->name, $key)->execute_single_field();
+							if ($linked)
+								foreach ($linked as $linked_key)
+									$t->perform_remove($linked_key, null);
+						} else {
+							// no primary key, just remove the entries
+							\DataBase::$conn->execute("DELETE FROM `".$t->getSQLName(null)."` WHERE `".$col->name."`=".$key);
+						}
+					}
+				}
+			}
 		}
 	}
 
-	public function update_by_key($key, $fields_values, $lock_id = null) {
-		// TODO sub models + customization
+	public function update_by_key($key, $fields_values, $sub_models = null, $lock_id = null) {
 		// check we are allowed
 		foreach ($fields_values as $field=>$value)
 			if (!$this->canModifyField($field)) throw new \Exception("Access Denied: modify ".$field." on table ".$this->name);
@@ -597,7 +640,7 @@ class Table {
 			}
 		}
 		// everything is valid and allowed, we can perform the update
-		$sql = "UPDATE `".$this->name."` SET ";
+		$sql = "UPDATE `".$this->getSQLName($sub_models)."` SET ";
 		$first = true;
 		foreach ($fields_values as $field=>$value) {
 			if ($first) $first = false; else $sql .= ",";
@@ -613,9 +656,8 @@ class Table {
 		if ($error <> null) throw new \Exception($error);
 	}
 
-	public function update($fields_values, $where) {
-		// TODO sub models + customization
-		$sql = "UPDATE `".$this->name."` SET ";
+	public function update($fields_values, $where, $sub_models = null) {
+		$sql = "UPDATE `".$this->getSQLName($sub_models)."` SET ";
 		$first = true;
 		foreach ($fields_values as $field=>$value) {
 			if (!$this->canModifyField($field)) throw new Exception("Access denied for column '".$field."' on table '".$this->name."'");

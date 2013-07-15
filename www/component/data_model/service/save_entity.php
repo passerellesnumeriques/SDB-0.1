@@ -7,7 +7,7 @@ $lock_id = $_POST["lock"];
 require_once("component/data_model/DataModel.inc");
 try {
 	$table = DataModel::get()->getTable($table);
-	$table->update_by_key($key, array($field=>$value), $lock_id);
+	$table->update_by_key($key, array($field=>$value), null, $lock_id);
 } catch (Exception $e) {
 	PNApplication::error($e->getMessage());
 }

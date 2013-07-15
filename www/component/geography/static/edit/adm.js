@@ -1,7 +1,9 @@
-function adm_editor(container, url_provider, adm_builder) {
+function adm_editor(container, url_provider, adm_builder, is_source) {
 	var t=this;
+	t.container = container;
 	t.url_provider = url_provider;
 	t.adm_builder = adm_builder;
+	t.is_source = is_source;
 	t.root = new adm(t,null,0,0);
 	t.root.element_content = container;
 	t.root.loading_img = document.createElement("IMG");
@@ -21,6 +23,14 @@ function adm_editor(container, url_provider, adm_builder) {
 			t.root.get_all_under(level, parent, list, function() {
 				handler(list);
 			});
+	};
+	
+	t.get_selected_item = function() {
+		return t.root.get_selected_item();
+	};
+	
+	t.add_adm = function(level, parent, id, name) {
+		t.root.add_adm(level, parent, id, name);
 	};
 }
 function adm(editor, parent, level, id, name, type_en, type_lo) {
@@ -59,6 +69,11 @@ function adm(editor, parent, level, id, name, type_en, type_lo) {
 			t.element_type.style.paddingLeft = "10px";
 			t.element_type.style.fontStyle = "italic";
 			t.element_type.style.color = "#808080";
+		}
+		if (t.editor.is_source) {
+			t.element_title.appendChild(t.import_cb = document.createElement("INPUT"));
+			t.import_cb.type = 'radio';
+			t.import_cb.name = t.editor.container.id;
 		}
 		t.element_title.appendChild(t.loading_img = document.createElement("IMG"));
 		t.loading_img.style.visibility = 'hidden';
@@ -132,6 +147,17 @@ function adm(editor, parent, level, id, name, type_en, type_lo) {
 		}
 	};
 	
+	t.get_selected_item = function() {
+		if (t.import_cb && t.import_cb.checked)
+			return this;
+		if (t.children == null) return null;
+		for (var i = 0; i < t.children.length; ++i) {
+			var item = t.children[i].get_selected_item();
+			if (item != null) return item;
+		}
+		return null;
+	};
+	
 	t.get_all_under = function(level, parent, list, handler) {
 		if (level <= t.level) { handler(); return; };
 		var f = function() {
@@ -174,5 +200,25 @@ function adm(editor, parent, level, id, name, type_en, type_lo) {
 			t.load_children(f);
 		else
 			f();
+	};
+
+	t.add_adm = function(level, parent, id, name) {
+		if (parent == t.id) {
+			var f = function() {
+				var adm = new adm(t.editor, this, level, id, name, null, null);
+				t.children.push(adm);
+				if (t.element_content.style.visibility == 'visible') {
+					t.hide_children();
+					t.display_children();
+				}
+			};
+			if (t.children == null && t.children_error == null)
+				t.load_children(f);
+			else
+				f();
+			return;
+		}
+		if (level <= t.level+1) return; // not there
+		// TODO
 	};
 }

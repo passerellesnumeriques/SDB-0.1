@@ -26,7 +26,7 @@ if ($res <> null) {
 <div id='split1' style='height:100%'>
 	<div style='overflow:auto'>
 		<div>Geography Database</div>
-		<div id='db_divisions' style='border:1px solid black;width:200px'>
+		<div id='db_divisions' style='border:1px solid black'>
   			<div class='collapsable_section_header'>Divisions</div>
   			<div class='collapsable_section_content'>
 				<table style='border:1px solid black' rules='all'><tbody id='table_divisions'>
@@ -48,6 +48,7 @@ if ($res <> null) {
 		</div>
 		<div>
 			<a href='#' onclick="new import_adm_wizard(1,0);return false;">Import Wizard for level 1</a>
+			<a href='#' onclick="import_selected_adm(1,0);return false;">Import selected item to level 1</a>
 		</div>
 		<div id='db'>
 		</div>
@@ -76,7 +77,7 @@ db = new adm_editor(document.getElementById('db'),function(level,parent){
 		list.push(a);
 	}
 	return list;
-});
+},false);
 <?php
 if ($country_code_geonames <> null) { 
 ?>
@@ -96,7 +97,7 @@ geonames = new adm_editor(document.getElementById('geonames'),function(level,par
 		list.push(a);
 	}
 	return list;
-});
+},true);
 <?php
 } 
 ?>
@@ -112,8 +113,19 @@ gadm = new adm_editor(document.getElementById('gadm'),function(level,parent){
 		list.push(a);
 	}
 	return list;
-});
+},true);
 <?php
 } 
 ?>
+function import_selected_adm(level,parent) {
+	var geo = geonames ? geonames.get_selected_item() : null;
+	var gad = gadm ? gdm.get_selected_item() : null;
+	var data = {country:"<?php echo $country_code?>",level:level,parent:parent};
+	if (geo) { data["geonames_level"] = geo.level; data["geonames_id"] = geo.id; } 
+	if (gad) { data["gadm_level"] = gad.level; data["gadm_id"] = gad.id; } 
+	ajax.post_parse_result("/dynamic/geography/service/edit/import",data,function(result){
+		if (result && result.id)
+			db.add_adm(level, parent, result.id, result.name);
+	});
+}
 </script>
