@@ -664,7 +664,7 @@ class Table {
 			if ($first) $first = false; else $sql .= ",";
 			$sql .= "`".$field."`=";
 			if ($value === null) $sql .= "NULL";
-			else $sql .= "'".DataBase::$conn->escape_string($value)."'";
+			else $sql .= "'".\DataBase::$conn->escape_string($value)."'";
 		}
 		if ($where <> null) {
 			$sql .= " WHERE ";
@@ -675,13 +675,13 @@ class Table {
 					if ($first) $first = false; else $sql .= " AND ";
 					$sql .= "`".$field."`";
 					if ($value === null) $sql .= " IS NULL";
-					else $sql .= "='".DataBase::$conn->escape_string($value)."'";
+					else $sql .= "='".\DataBase::$conn->escape_string($value)."'";
 				}
 			}
 		}
-		DataBase::$conn->execute($sql);
-		if (DataBase::$conn->get_last_error_number() == 0)
-			return DataBase::$conn->affected_rows();
+		\DataBase::$conn->execute($sql);
+		if (\DataBase::$conn->get_last_error_number() == 0)
+			return \DataBase::$conn->affected_rows();
 		return -1;
 	}
 	

@@ -9,11 +9,15 @@ if ($people <> PNApplication::$instance->user_people->user_people_id) {
 $can_edit = PNApplication::$instance->user_management->has_right("edit_people_details");
 require_once("common/SQLQuery.inc");
 $people = SQLQuery::create()->select("People")->where("id",$people)->execute_single_row();
+
+$this->add_javascript("/static/storage/upload.js");
+$this->add_javascript("/static/storage/picture.js");
 ?>
 <table>
 <tr>
 <td>
-	<img height='150px' src='/static/people/default_<?php if ($people["sex"] == "F") echo "female"; else echo "male";?>.jpg'/>
+	<div id='picture'></div>
+	<div id='upload_picture'></div>
 </td>
 <td>
 	<?php
@@ -23,3 +27,12 @@ $people = SQLQuery::create()->select("People")->where("id",$people)->execute_sin
 </td>
 </tr>
 </table>
+<script type='text/javascript'>
+picture('picture','/dynamic/people/service/picture?people=<?php echo $people["id"];?>&version=<?php echo $people["picture_version"]?>',150,200,"<?php echo htmlspecialchars($people["first_name"]." ".$people["last_name"],ENT_QUOTES,"UTF-8");?>");
+new upload('upload_picture',false,'/dynamic/people/page/set_picture?people=<?php echo $people["id"]?>',
+	function(popup){
+		popup.setContentFrame('/dynamic/people/page/set_picture?people=<?php echo $people["id"]?>');
+	},
+	true
+).addHiddenDropArea('picture');	
+</script>

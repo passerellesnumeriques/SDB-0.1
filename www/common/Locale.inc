@@ -37,6 +37,31 @@ function get_locale() {
 	}
 }
 
+function get_locale_html() {
+	$str = call_user_func_array('get_locale', func_get_args());
+	return htmlentities($str, ENT_COMPAT, "UTF-8");
+}
+function locale_html() {
+	$str = call_user_func_array('get_locale', func_get_args());
+	echo htmlentities($str, ENT_COMPAT, "UTF-8");
+}
+function get_locale_xml() {
+	$str = call_user_func_array('get_locale', func_get_args());
+	return htmlspecialchars($str, ENT_QUOTES, "UTF-8");
+}
+function locale_xml() {
+	$str = call_user_func_array('get_locale', func_get_args());
+	echo htmlspecialchars($str, ENT_QUOTES, "UTF-8");
+}
+function get_locale_js() {
+	$str = call_user_func_array('get_locale', func_get_args());
+	return json_encode($str);
+}
+function locale_js() {
+	$str = call_user_func_array('get_locale', func_get_args());
+	echo json_encode($str);
+}
+
 class Locale {
 
 	/** @var string default namespace, used if no namespace is specified */

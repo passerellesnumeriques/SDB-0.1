@@ -10,6 +10,7 @@ TODO: home page
 <a href="/dynamic/geography/page/edit/adm?country=PH">Geography: edit philippines</a><br/>
 <a href="/dynamic/geography/page/edit/adm?country=KH">Geography: edit cambodia</a><br/>
 <a href="/dynamic/geography/page/edit/adm?country=VN">Geography: edit vietnam</a><br/>
+<a href="/dynamic/selection/page/application_forms/edit_templates">Edit templates</a><br/>
 <br/>
 <br/>
 <?php var_dump($_SERVER); ?>

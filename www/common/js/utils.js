@@ -132,6 +132,16 @@ if (typeof document.getElementsByClassName!='function') {
         return ei;
     }
 }
+getIFrameDocument = function(frame) {
+	if (frame.contentDocument) return frame.contentDocument;
+	if (frame.document) return frame.document;
+	return frame.contentWindow.document;
+}
+getIFrameWindow = function(frame) {
+	if (frame.contentWindow) return frame.contentWindow;
+	return frame.contentDocument.window;
+}
+
 if (typeof getComputedStyle == "undefined") {
 	getComputedStyle = function(e,n) {
 		return e.currentStyle;
@@ -520,6 +530,7 @@ function add_stylesheet(url) {
 	s.rel = "stylesheet";
 	s.type = "text/css";
 	s.href = url.toString();
+	s.onload = function() { triggerEvent(window,'resize'); };
 	document.getElementsByTagName("HEAD")[0].appendChild(s);
 }
 
@@ -628,6 +639,7 @@ function _fire_layout_events() {
 		if (!found) list.push(e);
 	}
 	var changed;
+	var count = 0;
 	do {
 		changed = false;
 		for (var i = 0; i < list.length; ++i) {
@@ -636,7 +648,7 @@ function _fire_layout_events() {
 			list[i].handler(list[i].element);
 			changed |= w != list[i].element.offsetWidth || h != list[i].element.offsetHeight;
 		}
-	} while (changed);
+	} while (changed && ++count < 5);
 }
 function fireLayoutEventFor(element) {
 	if (element == document.body) { _fire_layout_events(); return; }

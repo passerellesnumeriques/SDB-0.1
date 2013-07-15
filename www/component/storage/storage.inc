@@ -14,9 +14,16 @@ class storage extends Component {
 		DataBase::execute("DELETE FROM `Storage` WHERE `expire` IS NOT NULL AND `expire` < ".time());
 	}
 	
-	public function store_data($data, $mime = null, $expire = null) {
+	private function allocate_id($mime = null, $expire = null) {
 		$this->remove_old();
-		DataBase::execute("INSERT INTO `Storage` (`mime`,`expire`) VALUE (".($mime <> null ? "'".DataBase::escape_string($mime)."'" : "NULL").",".($expire <> null ? $expire : "NULL").")");
+		$q = "INSERT INTO `Storage` (`mime`,`expire`,`username`) VALUE (";
+		$q .= ($mime <> null ? "'".DataBase::escape_string($mime)."'" : "NULL").",";
+		if ($expire <> null)
+			$q .= $expire.",'".DataBase::escape_string(PNApplication::$instance->user_management->username)."'";
+		else
+			$q .= "NULL,NULL";
+		$q .= ")";
+		DataBase::execute($q);
 		$id = DataBase::get_insert_id();
 		$dir1 = $id%100;
 		$dir2 = ($id/100)%100;
@@ -54,6 +61,11 @@ class storage extends Component {
 				return null;
 			}
 		}
+		return $id;
+	}
+	public function store_data($data, $mime = null, $expire = null) {
+		$id = $this->allocate_id($mime, $expire);
+		$path = $this->get_data_path($id);
 		$f = @fopen($path, "w");
 		if ($f == null) {
 			PNApplication::error("Unable to create file ".$path);
@@ -65,12 +77,17 @@ class storage extends Component {
 		return $id;
 	}
 	
-	function get_data($id, $new_expire = null) {
+	function get_data_path($id) {
 		$dir1 = $id%100;
 		$dir2 = ($id/100)%100;
 		$dir3 = ($id/10000)%100;
 		$filename = intval($id/1000000);
 		$path = dirname($_SERVER["SCRIPT_FILENAME"])."/storage/".$dir1."/".$dir2."/".$dir3."/".$filename;
+		return $path;
+	}
+	
+	function get_data($id, $new_expire = null) {
+		$path = $this->get_data_path($id);
 		if (!file_exists($path)) return null;
 		$data = file_get_contents($path);
 		if ($data === false) return null;
@@ -78,16 +95,69 @@ class storage extends Component {
 			DataBase::execute("UPDATE `Storage` SET `expire`=".$new_expire." WHERE `id`=".$id);
 		return $data;
 	}
+
+	function set_expire($id, $new_expire) {
+		DataBase::execute("UPDATE `Storage` SET `expire`=".($new_expire == null ? "NULL" : $new_expire)." WHERE `id`=".$id);
+	}
+	function set_expires($ids, $new_expire) {
+		if (count($ids) == 0) return;
+		$q = "UPDATE `Storage` SET `expire`=".($new_expire == null ? "NULL" : $new_expire)." WHERE (";
+		for ($i = 0; $i < count($ids); $i++) {
+			if ($i > 0) $q .= " OR ";
+			$q .= "`id`=".$ids[$i];
+		}
+		$q .= ")";
+		DataBase::execute($q);
+	}
 	
 	function remove_data($id) {
-		$dir1 = $id%100;
-		$dir2 = ($id/100)%100;
-		$dir3 = ($id/10000)%100;
-		$filename = intval($id/1000000);
-		$path = dirname($_SERVER["SCRIPT_FILENAME"])."/storage/".$dir1."/".$dir2."/".$dir3."/".$filename;
+		$path = $this->get_data_path($id);
 		unlink($path);
 		DataBase::execute("DELETE FROM `Storage` WHERE `id`=".$id);
 	}
 	
+	/** return true if this is the final call (either form sent, or no file uploaded), or false if this is an asynchronous upload */
+	function receive_upload(&$ids, &$names, &$types, &$sizes, $expire_seconds) {
+		$fn = (isset($_SERVER['HTTP_X_FILENAME']) ? $_SERVER['HTTP_X_FILENAME'] : false);
+		if ($fn) {
+			// AJAX call
+			$data = file_get_contents('php://input');
+			$id = $this->store_data($data, null, time()+$expire_seconds);
+			if ($id == null) return true;
+			array_push($ids, $id);
+			array_push($names, $fn);
+			array_push($types, $_SERVER['HTTP_X_FILETYPE']);
+			array_push($sizes, $_SERVER['HTTP_X_FILESIZE']);
+			return false;
+		} else {
+			// form submit
+			if (isset($_FILES["storage_upload"]) && count($_FILES["storage_upload"]) > 0) {
+				$files = $_FILES['storage_upload'];
+				if (!is_array($files['error'])) {
+					$files['error'] = array($files['error']);
+					$files['name'] = array($files['name']);
+					$files['tmp_name'] = array($files['tmp_name']);
+				}
+				foreach ($files['error'] as $file_id => $err) {
+					if ($err == UPLOAD_ERR_OK) {
+						$fn = $files['name'][$file_id];
+						$id = $this->allocate_id(null, time()+$expire_seconds);
+						$path = $this->get_data_path($id);
+						if (!move_uploaded_file($files['tmp_name'][$file_id], $path)) {
+							PNApplication::error("Unable to create file ".$path);
+							DataBase::execute("DELETE FROM `Storage` WHERE `id`=".$id);
+						} else {
+							array_push($ids, $id);
+							array_push($names, $fn);
+							array_push($types, $files['type'][$file_id]);
+							array_push($sizes, $files['size'][$file_id]);
+						}
+					} else
+						PNApplication::error("File ".$files['name'][$file_id].": error ".$files['error'][$file_id]); // TODO locale
+				}
+			}
+		}
+		return true;
+	}
 }
 ?>
